@@ -22,15 +22,15 @@
 
 #include <functional>
 #include <unordered_map>
-#include <boost/noncopyable.hpp>
 
 #include "cuehttp/context.hpp"
+#include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/common.hpp"
 
 namespace cue {
 namespace http {
 
-class router final : public boost::noncopyable {
+class router final : safe_noncopyable {
 public:
     router() noexcept = default;
 

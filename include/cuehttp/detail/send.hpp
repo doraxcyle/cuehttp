@@ -23,7 +23,6 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
 
 #include "cuehttp/context.hpp"
