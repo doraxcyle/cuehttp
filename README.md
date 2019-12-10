@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
 ### https
 
-cuehttp支持https，并且支持HTTP和HTTPS同时使用。`注：cue::http::cuehttp默认listen创建的是HTTP的，若要使用HTTPS，需要使用https::create_server创建。`
+cuehttp支持HTTPS，并且支持HTTP和HTTPS同时使用。`注：cue::http::cuehttp默认listen创建的是HTTP的，若要使用HTTPS，需要使用https::create_server创建。`
 
 ```c++
 #include <cuehttp.hpp>
