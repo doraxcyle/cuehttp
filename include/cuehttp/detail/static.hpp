@@ -33,6 +33,7 @@ struct options final {
     bool delay{false};
     std::string index;
     std::vector<std::string> extensions;
+    bool cross_domain{false};
 };
 
 } // namespace static_file
@@ -51,6 +52,7 @@ static auto use_static(T&& t, O&& o) {
             send_options.index = static_options.index.empty() ? "index.html" : std::move(static_options.index);
             send_options.extensions = std::move(static_options.extensions);
             send_options.hidden = static_options.hidden;
+            send_options.cross_domain = static_options.cross_domain;
             send_file(ctx, ctx.path(), std::move(send_options));
         };
 

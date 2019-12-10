@@ -42,6 +42,11 @@ public:
         }
     }
 
+    static engines& default_engines() {
+        static engines engines{std::thread::hardware_concurrency()};
+        return engines;
+    }
+
     boost::asio::io_service& get() {
         if (index_ == io_contexts_.size()) {
             index_ = 0;

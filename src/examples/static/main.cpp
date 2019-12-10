@@ -17,18 +17,15 @@
  * under the License.
  */
 
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-    server.use(use_static("C:/Users/xcyl/Desktop"));
+    cuehttp app;
+    app.use(use_static("C:/Users/xcyl/Desktop"));
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }

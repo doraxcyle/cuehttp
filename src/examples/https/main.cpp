@@ -17,29 +17,26 @@
  * under the License.
  */
 
-#ifndef CUEHTTP_SERVER_OPTIONS_HPP_
-#define CUEHTTP_SERVER_OPTIONS_HPP_
+#include <cuehttp.hpp>
 
-#include "cuehttp/detail/noncopyable.hpp"
+using namespace cue::http;
 
-namespace cue {
-namespace http {
+int main(int argc, char** argv) {
+    cuehttp app;
+    app.use([](context& ctx) {
+        ctx.type("text/html");
+        ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+        ctx.status(200);
+    });
 
-class server_options final : safe_noncopyable {
-public:
-    size_t pool_size{1};
+    // both
+    auto http_server = http::create_server(app.callback());
+    http_server.listen(10000);
 
-    static server_options& instance() {
-        static server_options options;
-        return options;
-    }
+    auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
+    https_server.listen(443);
 
-private:
-    server_options() noexcept = default;
-    ~server_options() noexcept = default;
-};
+    cuehttp::run();
 
-} // namespace http
-} // namespace cue
-
-#endif // CUEHTTP_SERVER_OPTIONS_HPP_
+    return 0;
+}

@@ -60,12 +60,6 @@ struct operator2 {
 };
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
-    handler1 hr1;
-    handler2 hr2;
-
     router route;
     route.get(
         "/get_multiple1",
@@ -94,6 +88,8 @@ int main(int argc, char** argv) {
             ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
         });
 
+    handler1 hr1;
+    handler2 hr2;
     route.get("/get_multiple3", &handler2::handle, &hr2, &handler2::handle,
               [](context& ctx) { std::cout << "after get" << std::endl; });
 
@@ -137,9 +133,10 @@ int main(int argc, char** argv) {
     operator1 o2;
     route.get("/get9", o2);
 
-    server.use(route.routes());
+    cuehttp app;
+    app.use(route.routes());
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }

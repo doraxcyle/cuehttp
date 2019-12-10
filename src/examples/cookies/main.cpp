@@ -17,16 +17,11 @@
  * under the License.
  */
 
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     route.get("/cookie", [](context& ctx) {
         cookie::options options;
@@ -39,9 +34,10 @@ int main(int argc, char** argv) {
         ctx.status(200);
     });
 
-    server.use(route.routes());
+    cuehttp app;
+    app.use(route.routes());
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }

@@ -39,6 +39,7 @@ struct options final {
     std::string index;
     std::vector<std::string> extensions;
     std::size_t chunked_threshold{5 * 1024 * 1024};
+    bool cross_domain{false};
 };
 
 } // namespace send
@@ -87,9 +88,11 @@ static void send_file(context& ctx, T&& t, O&& options) {
         const auto file_size = file.tellg();
         file.seekg(file_begin);
 
-        ctx.set("Access-Control-Allow-Origin", "*");
-        ctx.set("Access-Control-Allow-Headers", "X-Requested-With");
-        ctx.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+        if (options.cross_domain) {
+            ctx.set("Access-Control-Allow-Origin", "*");
+            ctx.set("Access-Control-Allow-Headers", "X-Requested-With");
+            ctx.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+        }
         if (!ctx.res().has("Content-Type")) {
             ctx.type(get_mime(real_path.extension().string()));
         }

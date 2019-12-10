@@ -4,7 +4,7 @@
 
 ## 简介
 
-cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[http-parser](https://github.com/nodejs/http-parser)进行HTTP协议解析。
+cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[http-parser](https://github.com/nodejs/http-parser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
 
 cuehttp内部包含一组中间件函数，注册的中间件会根据中间件的添加顺序执行。在中间件中也可以选择是否进行下一个中间件的执行或改变中间件内的行为执行顺序。
 
@@ -12,16 +12,15 @@ cuehttp内部包含一组中间件函数，注册的中间件会根据中间件�
 
 -   multipart
 -   错误处理
--   https
 -   http client
 
 ## 使用
 
-cuehttp依赖boost，以及使用最低依赖C++14。cuehttp是header-only的，`#include <cuehttp.hpp>`即可使用。
+cuehttp依赖boost，以及使用最低依赖C++14。cuehttp是header-only的，`#include <cuehttp.hpp>`即可使用。HTTPS需要依赖OpenSSL，并且在编译的时候添加`ENABLE_HTTPS`宏。
 
 ### hello cuehttp!
 
-cuehttp是非常的简洁易用的，使用use接口即可添加中间件。支持定义处理线程池大小。
+cuehttp是非常的简洁易用的，使用use接口即可添加中间件。
 
 ```c++
 #include <cuehttp.hpp>
@@ -29,16 +28,43 @@ cuehttp是非常的简洁易用的，使用use接口即可添加中间件。支�
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    // pool_size默认为1
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
-    server.use([](context& ctx) {
+    cuehttp app;
+    app.use([](context& ctx) {
         ctx.type("text/html");
         ctx.body(R"(<h1>Hello cuehttp!</h1>)");
         ctx.status(200);
     });
-    server.listen(10000);
+    app.listen(10000).run();
+
+    return 0;
+}
+```
+
+### https
+
+cuehttp支持https，并且支持HTTP和HTTPS同时使用。`注：cue::http::cuehttp默认listen创建的是HTTP的，若要使用HTTPS，需要使用https::create_server创建。`
+
+```c++
+#include <cuehttp.hpp>
+
+using namespace cue::http;
+
+int main(int argc, char** argv) {
+    cuehttp app;
+    app.use([](context& ctx) {
+        ctx.type("text/html");
+        ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+        ctx.status(200);
+    });
+
+    // both
+    auto http_server = http::create_server(app.callback());
+    http_server.listen(10000);
+
+    auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
+    https_server.listen(443);
+
+    cuehttp::run();
 
     return 0;
 }
@@ -64,27 +90,26 @@ cuehttp中的中间件通过next函数调用控制下游中间件的运行，当
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server server;
-
-    server.use([](context& ctx) {
+    cuehttp app;
+    app.use([](context& ctx) {
         std::cout << "0" << std::endl;
     });
     
-    server.use([](context& ctx, std::function<void()> next) {
+    app.use([](context& ctx, std::function<void()> next) {
         std::cout << "1-1" << std::endl;
         next();
         std::cout << "1-2" << std::endl;
     });
     
-    server.use([](context& ctx, std::function<void()> next) {
+    app.use([](context& ctx, std::function<void()> next) {
         std::cout << "2" << std::endl;
     });
     
-    server.use([](context& ctx, std::function<void()> next) {
+    app.use([](context& ctx, std::function<void()> next) {
         std::cout << "3" << std::endl;
     });
     
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }
@@ -141,31 +166,29 @@ struct operator2 {
 };
 
 int main(int argc, char** argv) {
-    server server;
-
-    server.use(f1);
-    server.use(f2);
+    cuehttp app;
+    app.use(f1);
+    app.use(f2);
 
     handler1 hr1;
-    server.use(&handler1::handle, &hr1);
-    server.use(&handler1::handle);
+    app.use(&handler1::handle, &hr1);
+    app.use(&handler1::handle);
 
     handler2 hr2;
-    server.use(&handler2::handle, &hr2);
-    server.use(&handler2::handle);
+    app.use(&handler2::handle, &hr2);
+    app.use(&handler2::handle);
 
     operator1 or1;
-    server.use(or1);
+    app.use(or1);
 
     operator2 or2;
-    server.use(or2);
+    app.use(or2);
 
-    server
-        .use([](context& ctx) {
-            ctx.type("text/html");
-            ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
-            ctx.status(200);
-        })
+    app.use([](context& ctx) {
+           ctx.type("text/html");
+           ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+           ctx.status(200);
+       })
         .use([](context& ctx, std::function<void()> next) {
             std::cout << "1-1" << std::endl;
             next();
@@ -183,11 +206,22 @@ int main(int argc, char** argv) {
             std::cout << "3-2" << std::endl;
             next();
         }};
-    server.use(handlers);
+    app.use(std::move(handlers));
 
-    server.use([](context& ctx) { std::cout << "4" << std::endl; });
+    app.use([](context& ctx) { std::cout << "4" << std::endl; });
 
-    server.listen(10000);
+    app.listen(10000).run();
+    // or
+    // app.listen(10000);
+    // cuehttp::run();
+
+    // or
+    // http::create_server(app.callback()).listen(10000).run();
+
+    // or
+    // auto http_server = http::create_server(app.callback());
+    // http_server.listen(10000);
+    // cuehttp::run();
 
     return 0;
 }
@@ -198,16 +232,11 @@ int main(int argc, char** argv) {
 支持chunked响应。
 
 ```c++
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     route.get("/chunked", [](context& ctx) {
         ctx.status(200);
@@ -215,9 +244,10 @@ int main(int argc, char** argv) {
         ctx.body() << R"(<h1>Hello, cuehttp!</h1>)";
     });
 
-    server.use(route.routes());
+    cuehttp app;
+    app.use(route.routes());
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }
@@ -225,21 +255,67 @@ int main(int argc, char** argv) {
 
 ## API
 
-### cue::http::server
+### cue::http::cuehttp
 
 cuehttp主体程序，用于注册中间件、启停HTTP服务。
 
-#### cue::http::server& use(...)
+#### cue::http::cuehttp& use(...)
 
-注册中间件到server中，返回server对象的引用用于进行链式调用。具体使用参考[中间件级联](#中间件级联)，[内置中间件](#内置中间件)。
+注册中间件到cuehttp中，返回cuehttp对象的引用用于进行链式调用。具体使用参考[中间件级联](#中间件级联)，[内置中间件](#内置中间件)。
 
-#### void listen(unsigned port, [const std::string&/std::string&& host])
+#### cue::http::cuehttp& listen(unsigned port, [const std::string&/std::string&& host])
 
 监听端口，此接口为阻塞接口，host为可选的。
 
-#### void stop()
+#### std::function<void(context&)> callback() const
 
-停止server服务。
+返回设置给server的handler。
+
+#### static void run()
+
+运行服务。
+
+#### static void stop()
+
+停止服务。
+
+### cue::http::server
+
+#### cue::http::server& listen(unsigned port, [const std::string&/std::string&& host])
+
+监听端口，此接口为阻塞接口，host为可选的。
+
+#### void run()
+
+运行服务。
+
+### cue::http::http
+
+#### cue::http::server create_server(std::function<void(context&)> handler)
+
+创建HTTP服务，传入handler。
+
+```c++
+using namespace cue::http;
+cuehttp app;
+...
+auto server = http::create_server(app.callback());
+server.listen(10000).run();
+```
+
+### cue::http::https
+
+#### cue::http::server create_server(std::function<void(context&)> handler, const std::string& key, const std::string& cert)
+
+创建HTTPS服务，传入handler。
+
+```c++
+using namespace cue::http;
+cuehttp app;
+...
+auto server = https::create_server(app.callback(), "server.key", "server.crt");
+server.listen(10000).run();
+```
 
 ### cue::http::context
 
@@ -664,18 +740,16 @@ response.body() << "hello cuehttp";
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-    
     router route;
     route.get("/get", [](context& ctx) {
         ctx.type("text/html");
         ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
     });
     
-    server.use(route.routes());
+    cuehttp app;
+    app.use(route.routes());
     
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }
@@ -698,9 +772,9 @@ int main(int argc, char** argv) {
 示例：
 
 ```c++
-cue::http::server server;
+cue::http::cuehttp app;
 cue::http::router route;
-server.use(route.routes());
+app.use(route.routes());
 ```
 
 ##### router& del|get|head|post|put|all(const std::string& path, ...)
@@ -855,9 +929,6 @@ cuehttp提供了简单的session中间件。默认使用cookie进行session交�
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     route.get("/test_session", [](context& ctx) {
         int view{1};
@@ -875,10 +946,23 @@ int main(int argc, char** argv) {
 
     session::options session_opt;
     session_opt.key = "cuehttp";
-    server.use(use_session(std::move(session_opt)));
-    server.use(route.routes());
+    // session_opt.external_key.get = [](context& ctx) {
+    //     std::cout << "external_key.get" << std::endl;
+    //     return ctx.get("User-Token");
+    // };
+    // session_opt.external_key.set = [](context& ctx, const std::string& value) {
+    //     std::cout << "external_key.set" << std::endl;
+    //     return ctx.set("User-Token", value);
+    // };
+    // session_opt.external_key.destroy = [](context& ctx, const std::string& value) {
+    //     std::cout << "external_key.destroy" << std::endl;
+    //     return ctx.remove("User-Token");
+    // };
+    cuehttp app;
+    app.use(use_session(std::move(session_opt)));
+    app.use(route.routes());
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }
@@ -937,16 +1021,11 @@ cuehttp的静态文件发送中间件。为cuehttp提供离线文件请求支持
 #### 示例
 
 ```c++
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     // 当请求http://ip:port/c++.pptx时返回C:/Users/xcyl/Desktop/c++11.pptx
     route.get("/c++.pptx", [](context& ctx) {
@@ -960,8 +1039,9 @@ int main(int argc, char** argv) {
         send_file(ctx, "C:/Users/xcyl/Desktop/C++Templates.pdf");
     });
 
-    server.use(route.routes());
-    server.listen(10000);
+    cuehttp app;
+    app.use(route.routes());
+    app.listen(10000).run();
 
     return 0;
 }
@@ -982,6 +1062,7 @@ int main(int argc, char** argv) {
 | index             | std::string               | 配置目录访问的默认文件                                       |                    |
 | extensions        | std::vector\<std::string> | 配置目录中的文件访问匹配扩展名，按照内部顺序进行优先匹配     |                    |
 | chunked_threshold | size_t                    | 文件发送Transfer-Encoding是否使用chunked，当大于此值时使用chunked，否则不配置chunked | 5,242,880(5MB大小) |
+| cross_domain      | bool                      | 是否允许跨域，允许跨域时添加允许跨域header。<br/>`Access-Control-Allow-Origin: *` `Access-Control-Allow-Headers: X-Requested-With ` <br/>`Access-Control-Allow-Methods: GET,POST,OPTIONS` | false              |
 
 ### static
 
@@ -990,18 +1071,15 @@ int main(int argc, char** argv) {
 #### 示例
 
 ```c++
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-    server.use(use_static("C:/Users/xcyl/Desktop"));
+    cuehttp app;
+    app.use(use_static("C:/Users/xcyl/Desktop"));
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }
@@ -1021,3 +1099,4 @@ int main(int argc, char** argv) {
 | delay                | bool                      | 此中间件是否延迟执行，true为延迟为下游中间件执行后执行，否则先执行此中间件再执行下游中间件 | false      |
 | index                | std::string               | 配置目录访问的默认文件                                       | index.html |
 | extensions           | std::vector\<std::string> | 配置目录中的文件访问匹配扩展名，按照内部顺序进行优先匹配     |            |
+| cross_domain         | bool                      | 是否允许跨域，允许跨域时添加允许跨域header。<br/>`Access-Control-Allow-Origin: *` `Access-Control-Allow-Headers: X-Requested-With ` <br/>`Access-Control-Allow-Methods: GET,POST,OPTIONS` | false      |

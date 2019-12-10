@@ -24,9 +24,6 @@
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     route.get("/test_session", [](context& ctx) {
         int view{1};
@@ -56,10 +53,11 @@ int main(int argc, char** argv) {
     //     std::cout << "external_key.destroy" << std::endl;
     //     return ctx.remove("User-Token");
     // };
-    server.use(use_session(std::move(session_opt)));
-    server.use(route.routes());
+    cuehttp app;
+    app.use(use_session(std::move(session_opt)));
+    app.use(route.routes());
 
-    server.listen(10000);
+    app.listen(10000).run();
 
     return 0;
 }

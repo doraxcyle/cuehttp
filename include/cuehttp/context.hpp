@@ -33,8 +33,8 @@ namespace http {
 
 class context final : safe_noncopyable {
 public:
-    explicit context(detail::reply_handler handler) noexcept
-        : response_{cookies_, std::move(handler)}, request_{cookies_, response_} {
+    context(detail::reply_handler handler, bool https) noexcept
+        : response_{cookies_, std::move(handler)}, request_{https, cookies_, response_} {
     }
 
     request& req() noexcept {

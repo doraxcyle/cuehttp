@@ -825,7 +825,7 @@ enum http_host_state
 };
 
 /* Macros for character classes; depends on strict-mode  */
-#define CR                  '\r'
+// #define CR                  '\r'
 #define LF                  '\n'
 #define LOWER(c)            (unsigned char)(c | 0x20)
 #define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
@@ -858,7 +858,7 @@ enum http_host_state
  * character or %x80-FF
  **/
 #define IS_HEADER_CHAR(ch)                                                     \
-  (ch == CR || ch == LF || ch == 9 || ((unsigned char)ch > 31 && ch != 127))
+  (ch == '\r' || ch == LF || ch == 9 || ((unsigned char)ch > 31 && ch != 127))
 
 #define start_state (parser->type == HTTP_REQUEST ? s_start_req : s_start_res)
 
@@ -1131,7 +1131,7 @@ reexecute:
         /* this state is used after a 'Connection: close' message
          * the parser will error out if it reads another message
          */
-        if (LIKELY(ch == CR || ch == LF))
+        if (LIKELY(ch == '\r' || ch == LF))
           break;
 
         SET_ERRNO(HPE_CLOSED_CONNECTION);
@@ -1139,7 +1139,7 @@ reexecute:
 
       case s_start_req_or_res:
       {
-        if (ch == CR || ch == LF)
+        if (ch == '\r' || ch == LF)
           break;
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
@@ -1176,7 +1176,7 @@ reexecute:
 
       case s_start_res:
       {
-        if (ch == CR || ch == LF)
+        if (ch == '\r' || ch == LF)
           break;
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
@@ -1276,7 +1276,7 @@ reexecute:
             case ' ':
               UPDATE_STATE(s_res_status_start);
               break;
-            case CR:
+            case '\r':
             case LF:
               UPDATE_STATE(s_res_status_start);
               REEXECUTE();
@@ -1305,14 +1305,14 @@ reexecute:
         UPDATE_STATE(s_res_status);
         parser->index = 0;
 
-        if (ch == CR || ch == LF)
+        if (ch == '\r' || ch == LF)
           REEXECUTE();
 
         break;
       }
 
       case s_res_status:
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_res_line_almost_done);
           CALLBACK_DATA(status);
           break;
@@ -1333,7 +1333,7 @@ reexecute:
 
       case s_start_req:
       {
-        if (ch == CR || ch == LF)
+        if (ch == '\r' || ch == LF)
           break;
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
@@ -1453,7 +1453,7 @@ reexecute:
         switch (ch) {
           /* No whitespace allowed here */
           case ' ':
-          case CR:
+          case '\r':
           case LF:
             SET_ERRNO(HPE_INVALID_URL);
             goto error;
@@ -1481,11 +1481,11 @@ reexecute:
             UPDATE_STATE(s_req_http_start);
             CALLBACK_DATA(url);
             break;
-          case CR:
+          case '\r':
           case LF:
             parser->http_major = 0;
             parser->http_minor = 9;
-            UPDATE_STATE((ch == CR) ?
+            UPDATE_STATE((ch == '\r') ?
               s_req_line_almost_done :
               s_header_field_start);
             CALLBACK_DATA(url);
@@ -1582,7 +1582,7 @@ reexecute:
 
       case s_req_http_end:
       {
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_req_line_almost_done);
           break;
         }
@@ -1611,7 +1611,7 @@ reexecute:
 
       case s_header_field_start:
       {
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_headers_almost_done);
           break;
         }
@@ -1798,7 +1798,7 @@ reexecute:
       case s_header_value_discard_ws:
         if (ch == ' ' || ch == '\t') break;
 
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_header_value_discard_ws_almost_done);
           break;
         }
@@ -1886,7 +1886,7 @@ reexecute:
         enum header_states h_state = (enum header_states) parser->header_state;
         for (; p != data + len; p++) {
           ch = *p;
-          if (ch == CR) {
+          if (ch == '\r') {
             UPDATE_STATE(s_header_almost_done);
             parser->header_state = h_state;
             CALLBACK_DATA(header_value);
@@ -1916,7 +1916,7 @@ reexecute:
 
                 for (; p != pe; p++) {
                   ch = *p;
-                  if (ch == CR || ch == LF) {
+                  if (ch == '\r' || ch == LF) {
                     --p;
                     break;
                   }
@@ -2358,7 +2358,7 @@ reexecute:
 
         assert(parser->flags & F_CHUNKED);
 
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_chunk_size_almost_done);
           break;
         }
@@ -2393,7 +2393,7 @@ reexecute:
       {
         assert(parser->flags & F_CHUNKED);
         /* just ignore this shit. TODO check for overflow */
-        if (ch == CR) {
+        if (ch == '\r') {
           UPDATE_STATE(s_chunk_size_almost_done);
           break;
         }
@@ -2444,7 +2444,7 @@ reexecute:
       case s_chunk_data_almost_done:
         assert(parser->flags & F_CHUNKED);
         assert(parser->content_length == 0);
-        STRICT_CHECK(ch != CR);
+        STRICT_CHECK(ch != '\r');
         UPDATE_STATE(s_chunk_data_done);
         CALLBACK_DATA(body);
         break;

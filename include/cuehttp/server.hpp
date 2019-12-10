@@ -25,8 +25,10 @@
 #include <vector>
 #include <type_traits>
 #include <boost/asio.hpp>
+#ifdef ENABLE_HTTPS
+#include <boost/asio/ssl.hpp>
+#endif // ENABLE_HTTPS
 
-#include "cuehttp/server_options.hpp"
 #include "cuehttp/context.hpp"
 #include "cuehttp/detail/connection.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
@@ -35,141 +37,53 @@
 namespace cue {
 namespace http {
 
-class server final : safe_noncopyable {
+template <typename Socket, typename T>
+class base_server : safe_noncopyable {
 public:
-    server() noexcept : engines_{server_options::instance().pool_size} {
-        compose();
+    base_server() noexcept : engines_{detail::engines::default_engines()} {
     }
 
-    ~server() noexcept = default;
-
-    void listen(unsigned port) {
-        assert(port != 0);
-        listen_and_run(boost::asio::ip::tcp::resolver::query{std::to_string(port)});
+    explicit base_server(std::function<void(context&)> handler) noexcept
+        : handler_{std::move(handler)}, engines_{detail::engines::default_engines()} {
     }
 
-    template <typename T>
-    void listen(unsigned port, T&& t) {
-        assert(port != 0);
-        listen_and_run(boost::asio::ip::tcp::resolver::query{std::forward<T>(t), std::to_string(port)});
+    virtual ~base_server() noexcept = default;
+
+    base_server(base_server&& rhs) noexcept : engines_{detail::engines::default_engines()} {
+        swap(rhs);
     }
 
-    void stop() {
-        engines_.stop();
-    }
-
-    template <typename... Args>
-    server& use(Args&&... args) {
-        use_impl(std::forward<Args>(args)...);
+    base_server& operator=(base_server&& rhs) noexcept {
+        swap(rhs);
         return *this;
     }
 
-private:
-    template <typename T, typename = std::enable_if_t<detail::is_middleware_list<T>::value>>
-    void use_impl(T&& t) {
-        use_append_list(std::forward<T>(t));
+    void swap(base_server& rhs) noexcept {
+        if (this != std::addressof(rhs)) {
+            std::swap(handler_, rhs.handler_);
+            std::swap(acceptor_, rhs.acceptor_);
+        }
     }
 
-    void use_append_list(const std::vector<std::function<void(context& ctx, std::function<void()> next)>>& handlers) {
-        middlewares_.insert(middlewares_.end(), handlers.begin(), handlers.end());
+    base_server& listen(unsigned port) {
+        assert(port != 0);
+        listen_impl(boost::asio::ip::tcp::resolver::query{std::to_string(port)});
+        return *this;
     }
 
-    void use_append_list(std::vector<std::function<void(context& ctx, std::function<void()> next)>>&& handlers) {
-        middlewares_.insert(middlewares_.end(), std::make_move_iterator(handlers.begin()),
-                            std::make_move_iterator(handlers.end()));
+    template <typename Host>
+    base_server& listen(unsigned port, Host&& h) {
+        assert(port != 0);
+        listen_impl(boost::asio::ip::tcp::resolver::query{std::forward<Host>(h), std::to_string(port)});
+        return *this;
     }
 
-    template <typename Func, typename = std::enable_if_t<!std::is_member_function_pointer<Func>::value>>
-    std::enable_if_t<detail::is_middleware<Func>::value, std::true_type> use_impl(Func&& func) {
-        use_with_next(std::forward<Func>(func));
-        return std::true_type{};
+    void run() {
+        engines_.run();
     }
 
-    template <typename T, typename Func, typename Self, typename = std::enable_if_t<std::is_same<T*, Self>::value>>
-    void use_impl(Func (T::*func)(context&, std::function<void()>), Self self) {
-        use_with_next(func, self);
-    }
-
-    template <typename T, typename Func>
-    void use_impl(Func (T::*func)(context&, std::function<void()>)) noexcept {
-        use_with_next(func, (T*)nullptr);
-    }
-
-    template <typename Func, typename = std::enable_if_t<!std::is_member_function_pointer<Func>::value>>
-    std::enable_if_t<detail::is_middleware_without_next<Func>::value, std::false_type> use_impl(Func&& func) {
-        use_without_next(std::forward<Func>(func));
-        return std::false_type{};
-    }
-
-    template <typename T, typename Func, typename Self, typename = std::enable_if_t<std::is_same<T*, Self>::value>>
-    void use_impl(Func (T::*func)(context&), Self self) {
-        use_without_next(func, self);
-    }
-
-    template <typename T, typename Func>
-    void use_impl(Func (T::*func)(context&)) {
-        use_without_next(func, (T*)nullptr);
-    }
-
-    template <typename Func>
-    void use_with_next(Func&& func) {
-        middlewares_.emplace_back(std::forward<Func>(func));
-    }
-
-    template <typename T, typename Func, typename Self>
-    void use_with_next(Func T::*func, Self self) {
-        middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (*self.*func)(ctx, std::move(next));
-            } else {
-                (T{}.*func)(ctx, std::move(next));
-            }
-        });
-    }
-
-    template <typename Func>
-    void use_without_next(Func&& func) {
-        middlewares_.emplace_back(
-            std::bind(&server::call_with_next, this, func, std::placeholders::_1, std::placeholders::_2));
-    }
-
-    template <typename T, typename Func, typename Self>
-    void use_without_next(Func T::*func, Self self) {
-        middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (*self.*func)(ctx);
-            } else {
-                (T{}.*func)(ctx);
-            }
-            next();
-        });
-    }
-
-    void call_with_next(std::function<void(context&)> func, context& ctx, std::function<void()> next) {
-        func(ctx);
-        next();
-    }
-
-    void compose() noexcept {
-        handler_ = [this](context& ctx) {
-            if (middlewares_.empty()) {
-                return;
-            }
-
-            size_t index{0};
-            std::function<void()> next;
-            next = [this, &next, &index, &ctx]() {
-                if (++index == middlewares_.size()) {
-                    return;
-                }
-                middlewares_.at(index)(ctx, next);
-            };
-
-            middlewares_.at(0)(ctx, next);
-        };
-    }
-
-    void listen_and_run(boost::asio::ip::tcp::resolver::query&& query) {
+protected:
+    void listen_impl(boost::asio::ip::tcp::resolver::query&& query) {
         boost::asio::ip::tcp::endpoint endpoint{*boost::asio::ip::tcp::resolver{engines_.get()}.resolve(query)};
         acceptor_ = std::make_shared<boost::asio::ip::tcp::acceptor>(engines_.get());
         acceptor_->open(endpoint.protocol());
@@ -177,30 +91,126 @@ private:
         acceptor_->bind(endpoint);
         acceptor_->listen();
         do_accept();
-
-        engines_.run();
     }
 
     void do_accept() {
-        auto connector = std::make_shared<detail::connection>(engines_.get(), handler_);
-        acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
-            if (!acceptor_->is_open()) {
+        static_cast<T&>(*this).do_accept_real();
+    }
+
+    detail::engines& engines_;
+    std::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor_;
+    std::function<void(context&)> handler_;
+};
+
+template <typename Socket = detail::http_socket>
+class server final : public base_server<Socket, server<Socket>>, safe_noncopyable {
+public:
+    server() noexcept = default;
+
+    explicit server(std::function<void(context&)> handler) noexcept
+        : base_server<Socket, server<Socket>>{std::move(handler)} {
+    }
+
+    server(server&& rhs) noexcept {
+        swap(rhs);
+    }
+
+    server& operator=(server&& rhs) noexcept {
+        swap(rhs);
+        return *this;
+    }
+
+    void swap(server& rhs) noexcept {
+        if (this != std::addressof(rhs)) {
+            base_server<Socket, server<Socket>>::swap(rhs);
+        }
+    }
+
+    void do_accept_real() {
+        auto connector = std::make_shared<detail::connection<Socket>>(this->handler_, this->engines_.get());
+        this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
+            if (!this->acceptor_->is_open()) {
                 return;
             }
 
             if (!code) {
+                connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
                 connector->start();
             }
 
-            do_accept();
+            this->do_accept();
+        });
+    }
+};
+
+#ifdef ENABLE_HTTPS
+template <>
+class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
+                                           safe_noncopyable {
+public:
+    explicit server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
+        : ssl_context_{boost::asio::ssl::context::sslv23}, base_server{std::move(handler)} {
+        ssl_context_.use_certificate_chain_file(cert);
+        ssl_context_.use_private_key_file(key, boost::asio::ssl::context::pem);
+    }
+
+    server(server&& rhs) noexcept : ssl_context_{boost::asio::ssl::context::sslv23} {
+        swap(rhs);
+    }
+
+    server& operator=(server&& rhs) noexcept {
+        swap(rhs);
+        return *this;
+    }
+
+    void swap(server& rhs) noexcept {
+        if (this != std::addressof(rhs)) {
+            base_server::swap(rhs);
+            std::swap(ssl_context_, rhs.ssl_context_);
+        }
+    }
+
+    void do_accept_real() {
+        auto connector = std::make_shared<detail::connection<detail::https_socket>>(this->handler_,
+                                                                                    this->engines_.get(), ssl_context_);
+        this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
+            if (!this->acceptor_->is_open()) {
+                return;
+            }
+
+            if (!code) {
+                connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
+                connector->start();
+            }
+
+            this->do_accept();
         });
     }
 
-    detail::engines engines_;
-    std::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor_;
-    std::function<void(context&)> handler_;
-    std::vector<std::function<void(context&, std::function<void()>)>> middlewares_;
+private:
+    boost::asio::ssl::context ssl_context_;
 };
+#endif // ENABLE_HTTPS
+
+using http_t = server<detail::http_socket>;
+
+struct http final : safe_noncopyable {
+    template <typename... Args>
+    inline static http_t create_server(Args&&... args) {
+        return http_t{std::forward<Args>(args)...};
+    }
+};
+
+#ifdef ENABLE_HTTPS
+using https_t = server<detail::https_socket>;
+
+struct https final : safe_noncopyable {
+    template <typename... Args>
+    inline static https_t create_server(Args&&... args) {
+        return https_t{std::forward<Args>(args)...};
+    }
+};
+#endif // ENABLE_HTTPS
 
 } // namespace http
 } // namespace cue

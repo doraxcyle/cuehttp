@@ -35,8 +35,8 @@ constexpr unsigned HTTP_REQUEST_BUFFER_SIZE{2048};
 
 class request final : safe_noncopyable {
 public:
-    request(cookies& cookies, response& response) noexcept
-        : cookies_{cookies}, response_{response}, parser_{new http_parser} {
+    request(bool https, cookies& cookies, response& response) noexcept
+        : https_{https}, cookies_{cookies}, response_{response}, parser_{new http_parser} {
         init_parser();
     }
 
@@ -156,6 +156,7 @@ public:
         keepalive_ = false;
         cookies_.reset();
         body_.clear();
+        body_.shrink_to_fit();
         fields_.clear();
         values_.clear();
         headers_.clear();
@@ -222,7 +223,7 @@ private:
         // host, hostname, origin, href
         self->host_ = self->get("Host");
         self->hostname_ = self->host_.substr(0, self->host_.rfind(":"));
-        self->origin_ = "http://" + self->host_;
+        self->origin_ = self->https_ ? "https://" : "http://" + self->host_;
         self->href_ = self->origin_ + self->url_;
 
         // content_type, charset
@@ -256,27 +257,23 @@ private:
 
     static int on_body(http_parser* parser, const char* at, size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        std::cout << "on_body: size: " << length << " " << std::string{at, length} << std::endl;
         self->body_.append(at, length);
         return 0;
     }
 
     static int on_message_complete(http_parser* parser) {
         request* self{static_cast<request*>(parser->data)};
-        // std::cout << "on_message_complete" << std::endl;
         self->has_more_requests_ = false;
         return 0;
     }
 
     static int on_chunk_header(http_parser* parser) {
         request* self{static_cast<request*>(parser->data)};
-        std::cout << "on_chunk_header size: " << parser->content_length << std::endl;
         return 0;
     }
 
     static int on_chunk_complete(http_parser* parser) {
         request* self{static_cast<request*>(parser->data)};
-        std::cout << "on_chunk_complete" << std::endl;
         return 0;
     }
 
@@ -307,6 +304,7 @@ private:
     }
 
     std::array<char, HTTP_REQUEST_BUFFER_SIZE> buffer_;
+    bool https_{false};
     response& response_;
     http_parser* parser_;
     http_parser_settings parser_settings_;

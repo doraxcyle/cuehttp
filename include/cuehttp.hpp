@@ -17,18 +17,18 @@
  * under the License.
  */
 
-#ifndef CUEHTTP_CUEHTTP_HPP_
-#define CUEHTTP_CUEHTTP_HPP_
+#ifndef CUEHTTP_HPP_
+#define CUEHTTP_HPP_
 
-#include "cuehttp/server_options.hpp"
 #include "cuehttp/context.hpp"
 #include "cuehttp/cookies.hpp"
 #include "cuehttp/request.hpp"
 #include "cuehttp/response.hpp"
 #include "cuehttp/server.hpp"
+#include "cuehttp/cuehttp.hpp"
 #include "cuehttp/router.hpp"
 #include "cuehttp/use_session.hpp"
 #include "cuehttp/send.hpp"
 #include "cuehttp/static.hpp"
 
-#endif // CUEHTTP_CUEHTTP_HPP_
+#endif // CUEHTTP_HPP_

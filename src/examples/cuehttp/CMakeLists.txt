@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(server)
+project(cuehttp)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++14")
 
 set(SRC main.cpp)
+include_directories(${PROJECT_SOURCE_DIR}/../../../include)
 
 find_package(Boost COMPONENTS system REQUIRED)
-include_directories(${PROJECT_SOURCE_DIR}/../../../include)
 include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${SRC})

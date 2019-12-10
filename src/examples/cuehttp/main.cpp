@@ -60,32 +60,29 @@ struct operator2 {
 };
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
-    server.use(f1);
-    server.use(f2);
+    cuehttp app;
+    app.use(f1);
+    app.use(f2);
 
     handler1 hr1;
-    server.use(&handler1::handle, &hr1);
-    server.use(&handler1::handle);
+    app.use(&handler1::handle, &hr1);
+    app.use(&handler1::handle);
 
     handler2 hr2;
-    server.use(&handler2::handle, &hr2);
-    server.use(&handler2::handle);
+    app.use(&handler2::handle, &hr2);
+    app.use(&handler2::handle);
 
     operator1 or1;
-    server.use(or1);
+    app.use(or1);
 
     operator2 or2;
-    server.use(or2);
+    app.use(or2);
 
-    server
-        .use([](context& ctx) {
-            ctx.type("text/html");
-            ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
-            ctx.status(200);
-        })
+    app.use([](context& ctx) {
+           ctx.type("text/html");
+           ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+           ctx.status(200);
+       })
         .use([](context& ctx, std::function<void()> next) {
             std::cout << "1-1" << std::endl;
             next();
@@ -103,11 +100,22 @@ int main(int argc, char** argv) {
             std::cout << "3-2" << std::endl;
             next();
         }};
-    server.use(handlers);
+    app.use(std::move(handlers));
 
-    server.use([](context& ctx) { std::cout << "4" << std::endl; });
+    app.use([](context& ctx) { std::cout << "4" << std::endl; });
 
-    server.listen(10000);
+    app.listen(10000).run();
+    // or
+    // app.listen(10000);
+    // cuehttp::run();
+
+    // or
+    // http::create_server(app.callback()).listen(10000).run();
+
+    // or
+    // auto http_server = http::create_server(app.callback());
+    // http_server.listen(10000);
+    // cuehttp::run();
 
     return 0;
 }

@@ -17,16 +17,11 @@
  * under the License.
  */
 
-#include <iostream>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    server_options::instance().pool_size = std::thread::hardware_concurrency();
-    server server;
-
     router route;
     route.get("/c++.pptx", [](context& ctx) {
         send::options opt;
@@ -38,8 +33,9 @@ int main(int argc, char** argv) {
         send_file(ctx, "C:/Users/xcyl/Desktop/C++Templates.pdf");
     });
 
-    server.use(route.routes());
-    server.listen(10000);
+    cuehttp app;
+    app.use(route.routes());
+    app.listen(10000).run();
 
     return 0;
 }

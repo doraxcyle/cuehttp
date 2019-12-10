@@ -33,6 +33,10 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/asio.hpp>
+#ifdef ENABLE_HTTPS
+#include <boost/asio/ssl.hpp>
+#endif // ENABLE_HTTPS
 
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/3rd_party/http_parser.h"
@@ -46,6 +50,10 @@ namespace detail {
 
 // types
 using reply_handler = std::function<bool(const std::string&)>;
+using http_socket = boost::asio::ip::tcp::socket;
+#ifdef ENABLE_HTTPS
+using https_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
+#endif // ENABLE_HTTPS
 
 // global variables
 struct global_value final : safe_noncopyable {
@@ -400,7 +408,7 @@ private:
 
 #define DEFER_CONCAT_NAME(l, r) l##r
 #define DEFER_CREATE_NAME DEFER_CONCAT_NAME(__FUNCTION__, __LINE__)
-#define defer                                      \
+#define cue_defer                                  \
     cue::http::detail::defer_ DEFER_CREATE_NAME{}; \
     DEFER_CREATE_NAME +
 
