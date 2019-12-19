@@ -29,7 +29,7 @@ namespace cue {
 namespace http {
 
 template <typename T>
-inline static auto use_session(T&& options) {
+inline auto use_session(T&& options) {
     return [options = std::forward<T>(options)](context& ctx, std::function<void()> next) {
         const bool auto_commit{options.auto_commit};
         if (!ctx.session_enabled()) {

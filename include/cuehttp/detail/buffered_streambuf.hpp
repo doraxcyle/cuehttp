@@ -61,7 +61,7 @@ public:
         }
     }
 
-    int_type overflow(int_type c = traits_type::eof()) override {
+    int_type overflow(int_type c = traits_type::eof()) final {
         if (!(mode_ & std::ios_base::out)) {
             return traits_type::eof();
         }
@@ -79,7 +79,7 @@ public:
         return c;
     }
 
-    int_type underflow() override {
+    int_type underflow() final {
         if (!(mode_ & std::ios_base::in)) {
             return traits_type::eof();
         }
@@ -92,7 +92,7 @@ public:
         return traits_type::to_int_type(*pptr());
     }
 
-    int sync() override {
+    int sync() final {
         if (flush() == traits_type::eof()) {
             return traits_type::eof();
         }

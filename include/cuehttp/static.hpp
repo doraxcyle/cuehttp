@@ -26,7 +26,7 @@ namespace cue {
 namespace http {
 
 template <typename... Args>
-inline static auto use_static(Args&&... args) {
+inline auto use_static(Args&&... args) {
     return detail::use_static(std::forward<Args>(args)...);
 }
 

@@ -45,11 +45,11 @@ public:
         }
     }
 
-    int read_from(char* buffer, std::streamsize size) override {
+    int read_from(char* buffer, std::streamsize size) final {
         return 0;
     }
 
-    int write_to(const char* buffer, std::streamsize size) override {
+    int write_to(const char* buffer, std::streamsize size) final {
         buffer_.clear();
         if (chunked_) {
             std::ostringstream stream;
