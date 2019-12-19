@@ -13,14 +13,18 @@ os:
 
 compiler:
   - g++
-  - clang++
 
-arch:
-  packages:
-    - cmake
-    - gcc
-    - clang
-    - boost
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get install -qq g++-5
+  - sudo apt-get install -qq cmake
+
+addons:
+  apt:
+    packages: libboost-all-dev
 
 script:
     - cd src/examples/cuehttp
