@@ -2,7 +2,7 @@ language: cpp
 
 sudo: required
 
-dist: xenial
+dist: bionic
 
 branches:
   only:
@@ -19,7 +19,7 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq g++-5
+  - sudo apt-get install -qq g++-7
   - sudo apt-get install -qq cmake
 
 addons:
