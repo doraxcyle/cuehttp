@@ -47,7 +47,7 @@ struct options final {
 namespace detail {
 
 template <typename T, typename O>
-static void send_file(context& ctx, T&& t, O&& options) {
+inline void send_file(context& ctx, T&& t, O&& options) {
     std::string path = std::forward<T>(t);
     assert(!path.empty());
 
@@ -109,7 +109,7 @@ static void send_file(context& ctx, T&& t, O&& options) {
 }
 
 template <typename T>
-inline static void send_file(context& ctx, T&& t) {
+inline void send_file(context& ctx, T&& t) {
     send_file(ctx, std::forward<T>(t), send::options{});
 }
 

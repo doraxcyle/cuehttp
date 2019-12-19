@@ -26,7 +26,7 @@ namespace cue {
 namespace http {
 
 template <typename... Args>
-inline static void send_file(Args&&... args) {
+inline void send_file(Args&&... args) {
     detail::send_file(std::forward<Args>(args)...);
 }
 
