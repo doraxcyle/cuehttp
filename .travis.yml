@@ -1,0 +1,29 @@
+language: cpp
+
+sudo: required
+
+dist: xenial
+
+branches:
+  only:
+    - master
+
+os:
+  - linux
+
+compiler:
+  - g++
+  - clang++
+
+arch:
+  packages:
+    - cmake
+    - gcc
+    - clang
+    - boost
+
+script:
+    - cd src/examples/cuehttp
+    - mkdir build && cd build
+    - cmake -DCMAKE_BUILD_TYPE=Debug ..
+    - make -j8
