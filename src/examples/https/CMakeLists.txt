@@ -10,7 +10,7 @@ include_directories(${PROJECT_SOURCE_DIR}/../../../include)
 find_package(Boost COMPONENTS system filesystem REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-option(ENABLE_HTTPS "enable https" OFF)
+option(ENABLE_HTTPS "enable https" ON)
 if (ENABLE_HTTPS)
     message("-- enable https")
     find_package(OpenSSL REQUIRED)
