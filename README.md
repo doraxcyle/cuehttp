@@ -1,6 +1,9 @@
 # cuehttp
 
-[![Build Status](https://travis-ci.org/xcyl/cuehttp.svg?branch=master)](https://travis-ci.org/xcyl/cuehttp)[![GitHub license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](https://raw.githubusercontent.com/xcyl/cuehttp/master/LICENSE)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a11b810953524ef98b92452a3c611d6f)](https://www.codacy.com/manual/xcyl/cuehttp?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xcyl/cuehttp&amp;utm_campaign=Badge_Grade)[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/xcyl/cuehttp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xcyl/cuehttp/context:cpp)
+[![Build Status](https://travis-ci.org/xcyl/cuehttp.svg?branch=master)](https://travis-ci.org/xcyl/cuehttp)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a11b810953524ef98b92452a3c611d6f)](https://www.codacy.com/manual/xcyl/cuehttp?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xcyl/cuehttp&amp;utm_campaign=Badge_Grade)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/xcyl/cuehttp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xcyl/cuehttp/context:cpp)
+[![GitHub license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](https://raw.githubusercontent.com/xcyl/cuehttp/master/LICENSE)
 
 ## 简介
 
