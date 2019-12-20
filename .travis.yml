@@ -27,7 +27,7 @@ addons:
     packages: libboost-all-dev
 
 script:
-    - cd src/examples/cuehttp
+    - cd src/examples
     - mkdir build && cd build
     - cmake -DCMAKE_BUILD_TYPE=Debug ..
     - make -j8
