@@ -242,7 +242,7 @@ private:
     options options_;
 };
 
-std::ostream& operator<<(std::ostream& os, const cookie& cookie) {
+inline std::ostream& operator<<(std::ostream& os, const cookie& cookie) {
     assert(!cookie.name_.empty() && !cookie.value_.empty());
     // name=value
     os << cookie.name_ << '=' << cookie.value_;

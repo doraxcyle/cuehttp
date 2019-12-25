@@ -222,7 +222,7 @@ private:
     std::shared_ptr<std::ostream> stream_{nullptr};
 };
 
-std::ostream& operator<<(std::ostream& os, const response& response) {
+inline std::ostream& operator<<(std::ostream& os, const response& response) {
     os << "HTTP/" << response.version_ << ' ' << response.status_ << ' ' << response.message_ << "\r\n";
 
     // headers
