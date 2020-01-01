@@ -157,8 +157,8 @@ public:
         cookies_.reset();
         body_.clear();
         body_.shrink_to_fit();
-        fields_.clear();
-        values_.clear();
+        field_.clear();
+        value_.clear();
         headers_.clear();
     }
 
@@ -194,25 +194,27 @@ private:
 
     static int on_header_field(http_parser* parser, const char* at, size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->fields_.emplace_back(at, length);
+        // add header
+        if (!self->field_.empty() && !self->value_.empty()) {
+            self->headers_.emplace(self->field_, self->value_);
+        }
+        self->field_.clear();
+        self->value_.clear();
+        self->field_.assign(at, length);
         return 0;
     }
 
     static int on_header_value(http_parser* parser, const char* at, size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->values_.emplace_back(at, length);
+        self->value_.assign(at, length);
         return 0;
     }
 
     static int on_headers_complete(http_parser* parser) {
         request* self{static_cast<request*>(parser->data)};
-        assert(self->fields_.size() == self->values_.size());
-        // headers
-        for (size_t i{0}; i < self->fields_.size(); ++i) {
-            self->headers_.emplace(self->fields_.at(i), self->values_.at(i));
-        }
-        self->fields_.clear();
-        self->values_.clear();
+
+        self->field_.clear();
+        self->value_.clear();
 
         // version
         self->version_ = std::to_string(parser->http_major) + "." + std::to_string(parser->http_minor);
@@ -326,8 +328,8 @@ private:
     bool keepalive_{false};
     cookies& cookies_;
     std::string body_;
-    std::vector<std::string> fields_;
-    std::vector<std::string> values_;
+    std::string field_;
+    std::string value_;
     std::map<std::string, std::string> headers_;
 };
 
