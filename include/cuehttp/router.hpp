@@ -34,17 +34,17 @@ class router final : safe_noncopyable {
 public:
     router() noexcept = default;
 
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, router>::value>>
-    explicit router(T&& t) noexcept : prefix_{std::forward<T>(t)} {
+    template <typename Prefix, typename = std::enable_if_t<!std::is_same<std::decay_t<Prefix>, router>::value>>
+    explicit router(Prefix&& prefix) noexcept : prefix_{std::forward<Prefix>(prefix)} {
     }
 
     std::function<void(context&)> routes() const noexcept {
         return make_routes();
     }
 
-    template <typename T>
-    router& prefix(T&& t) {
-        prefix_ = std::forward<T>(t);
+    template <typename Prefix>
+    router& prefix(Prefix&& prefix) {
+        prefix_ = std::forward<Prefix>(prefix);
         return *this;
     }
 
@@ -177,7 +177,7 @@ private:
                            Func (T::*func)(context&, std::function<void()>), Self self, Args&&... args) {
         handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
-                (*self.*func)(ctx, std::move(next));
+                (self->*func)(ctx, std::move(next));
             }
         });
         register_multiple(handlers, std::forward<Args>(args)...);
@@ -196,7 +196,7 @@ private:
                            Func (T::*func)(context&), Self self, Args&&... args) {
         handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
-                (*self.*func)(ctx);
+                (self->*func)(ctx);
             }
             next();
         });
@@ -218,7 +218,7 @@ private:
                            Func (T::*func)(context&, std::function<void()>), Self self) {
         handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
-                (*self.*func)(ctx, std::move(next));
+                (self->*func)(ctx, std::move(next));
             }
         });
     }
@@ -234,7 +234,7 @@ private:
                            Func (T::*func)(context&), Self self) {
         handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
-                (*self.*func)(ctx);
+                (self->*func)(ctx);
             }
         });
     }
@@ -297,7 +297,7 @@ private:
                           [func, self](context& ctx) {
                               const auto next = []() {};
                               if (self) {
-                                  (*self.*func)(ctx, std::move(next));
+                                  (self->*func)(ctx, std::move(next));
                               } else {
                                   (T{}.*func)(ctx, std::move(next));
                               }
@@ -314,21 +314,21 @@ private:
         handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)),
                           [func, self](context& ctx) {
                               if (self) {
-                                  (*self.*func)(ctx);
+                                  (self->*func)(ctx);
                               } else {
                                   (T{}.*func)(ctx);
                               }
                           });
     }
 
-    template <typename T>
-    void redirect_impl(const std::string& path, T&& t) {
-        redirect_impl(path, std::forward<T>(t), 301);
+    template <typename Destination>
+    void redirect_impl(const std::string& path, Destination&& destination) {
+        redirect_impl(path, std::forward<Destination>(destination), 301);
     }
 
-    template <typename T>
-    void redirect_impl(const std::string& path, T&& t, unsigned status) {
-        all(path, [destination = std::forward<T>(t), status](context& ctx) {
+    template <typename Destination>
+    void redirect_impl(const std::string& path, Destination&& destination, unsigned status) {
+        all(path, [destination = std::forward<Destination>(destination), status](context& ctx) {
             ctx.redirect(std::move(destination));
             ctx.status(status);
         });

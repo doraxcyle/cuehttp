@@ -46,19 +46,19 @@ struct options final {
 
 namespace detail {
 
-template <typename T, typename O>
-inline void send_file(context& ctx, T&& t, O&& options) {
-    std::string path = std::forward<T>(t);
-    assert(!path.empty());
+template <typename Path, typename Options>
+inline void send_file(context& ctx, Path&& path, Options&& options) {
+    std::string temp_path = std::forward<Path>(path);
+    assert(!temp_path.empty());
 
-    if (path.back() == '/' && !options.index.empty()) {
-        path += options.index;
+    if (temp_path.back() == '/' && !options.index.empty()) {
+        temp_path += options.index;
     }
 
     try {
         namespace fs = boost::filesystem;
         fs::path real_path{options.root};
-        real_path += path;
+        real_path += temp_path;
         if (!options.hidden && real_path.filename().string()[0] == '.') {
             return;
         }
@@ -108,9 +108,9 @@ inline void send_file(context& ctx, T&& t, O&& options) {
     }
 }
 
-template <typename T>
-inline void send_file(context& ctx, T&& t) {
-    send_file(ctx, std::forward<T>(t), send::options{});
+template <typename Path>
+inline void send_file(context& ctx, Path&& path) {
+    send_file(ctx, std::forward<Path>(path), send::options{});
 }
 
 } // namespace detail

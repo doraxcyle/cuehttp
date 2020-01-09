@@ -36,9 +36,9 @@ public:
         : cookies_{cookies}, reply_handler_{std::move(handler)} {
     }
 
-    template <typename T>
-    void version(T&& version) {
-        version_ = std::forward<T>(version);
+    template <typename Version>
+    void version(Version&& version) {
+        version_ = std::forward<Version>(version);
     }
 
     unsigned status() const noexcept {
@@ -50,9 +50,9 @@ public:
         message_ = detail::utils::get_message_for_status(status);
     }
 
-    template <typename T>
-    void message(T&& message) {
-        message_ = std::forward<T>(message);
+    template <typename Msg>
+    void message(Msg&& message) {
+        message_ = std::forward<Msg>(message);
     }
 
     bool has(const std::string& field) const {
@@ -73,9 +73,9 @@ public:
         return detail::global_value::empty_string();
     }
 
-    template <typename F, typename V>
-    void set(F&& field, V&& value) {
-        headers_.emplace(std::forward<F>(field), std::forward<V>(value));
+    template <typename Field, typename Value>
+    void set(Field&& field, Value&& value) {
+        headers_.emplace(std::forward<Field>(field), std::forward<Value>(value));
     }
 
     void set(const std::map<std::string, std::string>& headers) {
@@ -99,12 +99,12 @@ public:
         }
     }
 
-    template <typename T>
-    void redirect(T&& t) {
+    template <typename Url>
+    void redirect(Url&& url) {
         if (status_ == 404) {
             status(302);
         }
-        set("Location", std::forward<T>(t));
+        set("Location", std::forward<Url>(url));
     }
 
     bool keepalive() const noexcept {
@@ -121,9 +121,9 @@ public:
         }
     }
 
-    template <typename T>
-    void type(T&& content_type) {
-        set("Content-type", std::forward<T>(content_type));
+    template <typename ContentType>
+    void type(ContentType&& content_type) {
+        set("Content-type", std::forward<ContentType>(content_type));
     }
 
     void length(long long content_length) noexcept {
@@ -134,9 +134,9 @@ public:
         return !body_.empty();
     }
 
-    template <typename T>
-    void body(T&& body) {
-        body_ = std::forward<T>(body);
+    template <typename Body>
+    void body(Body&& body) {
+        body_ = std::forward<Body>(body);
         length(body_.length());
     }
 

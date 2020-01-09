@@ -95,33 +95,33 @@ public:
         response_.status(status);
     }
 
-    template <typename T>
-    void redirect(T&& t) {
-        response_.redirect(std::forward<T>(t));
+    template <typename Url>
+    void redirect(Url&& url) {
+        response_.redirect(std::forward<Url>(url));
     }
 
-    template <typename T>
-    void message(T&& message) {
-        response_.message(std::forward<T>(message));
+    template <typename Msg>
+    void message(Msg&& message) {
+        response_.message(std::forward<Msg>(message));
     }
 
-    template <typename F, typename V>
-    void set(F&& field, V&& value) {
-        response_.set(std::forward<F>(field), std::forward<V>(value));
+    template <typename Field, typename Value>
+    void set(Field&& field, Value&& value) {
+        response_.set(std::forward<Field>(field), std::forward<Value>(value));
     }
 
-    template <typename T>
-    void set(T&& headers) {
-        response_.set(std::forward<T>(headers));
+    template <typename Headers>
+    void set(Headers&& headers) {
+        response_.set(std::forward<Headers>(headers));
     }
 
     void remove(const std::string& field) {
         response_.remove(field);
     }
 
-    template <typename T>
-    void type(T&& content_type) {
-        response_.type(std::forward<T>(content_type));
+    template <typename ContentType>
+    void type(ContentType&& content_type) {
+        response_.type(std::forward<ContentType>(content_type));
     }
 
     void length(long long content_length) noexcept {
@@ -141,18 +141,18 @@ public:
         return *session_;
     }
 
-    template <typename T>
-    void session(T&& t) {
-        session_ = std::make_shared<class session>(std::forward<T>(t), *this, cookies_);
+    template <typename Options>
+    void session(Options&& options) {
+        session_ = std::make_shared<class session>(std::forward<Options>(options), *this, cookies_);
     }
 
     bool has_body() const noexcept {
         return response_.has_body();
     }
 
-    template <typename T>
-    void body(T&& body) {
-        response_.body(std::forward<T>(body));
+    template <typename Body>
+    void body(Body&& body) {
+        response_.body(std::forward<Body>(body));
     }
 
     void body(const char* buffer, size_t size) {

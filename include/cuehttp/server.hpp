@@ -72,9 +72,9 @@ public:
     }
 
     template <typename Host>
-    base_server& listen(unsigned port, Host&& h) {
+    base_server& listen(unsigned port, Host&& host) {
         assert(port != 0);
-        listen_impl(boost::asio::ip::tcp::resolver::query{std::forward<Host>(h), std::to_string(port)});
+        listen_impl(boost::asio::ip::tcp::resolver::query{std::forward<Host>(host), std::to_string(port)});
         return *this;
     }
 

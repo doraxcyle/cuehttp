@@ -66,9 +66,9 @@ public:
 
     session() noexcept = delete;
 
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, session>::value>>
-    session(T&& t, context& context, cookies& cookies) noexcept
-        : options_{std::forward<T>(t)}, context_{context}, cookies_{cookies} {
+    template <typename Options>
+    session(Options&& options, context& context, cookies& cookies) noexcept
+        : options_{std::forward<Options>(options)}, context_{context}, cookies_{cookies} {
         if (!options_.genid) {
             options_.genid = [this]() { return options_.prefix + detail::utils::uuid(); };
         }
@@ -80,9 +80,9 @@ public:
         }
     }
 
-    template <typename K, typename V>
-    void set(K&& k, V&& v) {
-        datas_[std::forward<K>(k)] = std::forward<V>(v);
+    template <typename Key, typename Value>
+    void set(Key&& key, Value&& value) {
+        datas_[std::forward<Key>(key)] = std::forward<Value>(value);
     }
 
     const std::string& get(const std::string& key) const {

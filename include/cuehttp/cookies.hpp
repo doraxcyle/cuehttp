@@ -53,8 +53,9 @@ public:
 
     cookie() noexcept = default;
 
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, cookie>::value>>
-    explicit cookie(T&& t) noexcept : cookie_string_{std::forward<T>(t)} {
+    template <typename CookieString,
+              typename = std::enable_if_t<!std::is_same<std::decay_t<CookieString>, cookie>::value>>
+    explicit cookie(CookieString&& cookie_string) noexcept : cookie_string_{std::forward<CookieString>(cookie_string)} {
         parse_cookie();
     }
 
@@ -92,18 +93,18 @@ public:
         return name_;
     }
 
-    template <typename T>
-    void name(T&& t) {
-        name_ = std::forward<T>(t);
+    template <typename Name>
+    void name(Name&& name) {
+        name_ = std::forward<Name>(name);
     }
 
     const std::string& value() const noexcept {
         return value_;
     }
 
-    template <typename T>
-    void value(T&& t) {
-        value_ = std::forward<T>(t);
+    template <typename Value>
+    void value(Value&& value) {
+        value_ = std::forward<Value>(value);
     }
 
     int max_age() const noexcept {
@@ -118,27 +119,27 @@ public:
         return options_.expires;
     }
 
-    template <typename T>
-    void expires(T&& t) {
-        options_.expires = std::forward<T>(t);
+    template <typename Expires>
+    void expires(Expires&& expires) {
+        options_.expires = std::forward<Expires>(expires);
     }
 
     const std::string& path() const noexcept {
         return options_.path;
     }
 
-    template <typename T>
-    void path(T&& t) {
-        options_.path = std::forward<T>(t);
+    template <typename Path>
+    void path(Path&& path) {
+        options_.path = std::forward<Path>(path);
     }
 
     const std::string& domain() const noexcept {
         return options_.domain;
     }
 
-    template <typename T>
-    void domain(T&& t) {
-        options_.domain = std::forward<T>(t);
+    template <typename Domain>
+    void domain(Domain&& domain) {
+        options_.domain = std::forward<Domain>(domain);
     }
 
     bool secure() const noexcept {
@@ -163,9 +164,9 @@ public:
         return os.str();
     }
 
-    template <typename T>
-    void parse(T&& t) {
-        cookie_string_ = std::forward<T>(t);
+    template <typename CookieString>
+    void parse(CookieString&& cookie_string) {
+        cookie_string_ = std::forward<CookieString>(cookie_string);
         parse_cookie();
     }
 
@@ -183,17 +184,17 @@ public:
 private:
     friend std::ostream& operator<<(std::ostream& os, const cookie& cookie);
 
-    template <typename N, typename V>
-    void set_impl(N&& name, V&& value) {
-        name_ = std::forward<N>(name);
-        value_ = std::forward<V>(value);
+    template <typename Name, typename Value>
+    void set_impl(Name&& name, Value&& value) {
+        name_ = std::forward<Name>(name);
+        value_ = std::forward<Value>(value);
     }
 
-    template <typename N, typename V, typename O>
-    void set_impl(N&& name, V&& value, O&& options) {
-        name_ = std::forward<N>(name);
-        value_ = std::forward<V>(value);
-        options_ = std::forward<O>(options);
+    template <typename Name, typename Value, typename Options>
+    void set_impl(Name&& name, Value&& value, Options&& options) {
+        name_ = std::forward<Name>(name);
+        value_ = std::forward<Value>(value);
+        options_ = std::forward<Options>(options);
     }
 
     void parse_cookie() {
@@ -291,9 +292,9 @@ public:
         cookies_.emplace_back(std::move(temp));
     }
 
-    template <typename T>
-    void parse(T&& t) {
-        cookie_.parse(std::forward<T>(t));
+    template <typename CookieString>
+    void parse(CookieString&& cookie_string) {
+        cookie_.parse(std::forward<CookieString>(cookie_string));
     }
 
     const std::vector<cookie>& get() const noexcept {

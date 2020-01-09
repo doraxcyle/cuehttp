@@ -50,11 +50,11 @@ public:
         return *this;
     }
 
-    template <typename T>
-    cuehttp& listen(unsigned port, T&& t) {
+    template <typename Host>
+    cuehttp& listen(unsigned port, Host&& host) {
         assert(port != 0);
         server_ = http::create_server(handler_);
-        server_.listen(port, std::forward<T>(t));
+        server_.listen(port, std::forward<Host>(host));
         return *this;
     }
 
@@ -69,9 +69,9 @@ public:
     }
 
 private:
-    template <typename T, typename = std::enable_if_t<detail::is_middleware_list<T>::value>>
-    void use_impl(T&& t) {
-        use_append_list(std::forward<T>(t));
+    template <typename List, typename = std::enable_if_t<detail::is_middleware_list<List>::value>>
+    void use_impl(List&& list) {
+        use_append_list(std::forward<List>(list));
     }
 
     void use_append_list(const std::vector<std::function<void(context& ctx, std::function<void()> next)>>& handlers) {

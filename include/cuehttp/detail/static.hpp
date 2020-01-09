@@ -40,9 +40,10 @@ struct options final {
 
 namespace detail {
 
-template <typename T, typename O>
-inline auto use_static(T&& t, O&& o) {
-    return [root = std::forward<T>(t), options = std::forward<O>(o)](context& ctx, std::function<void()> next) {
+template <typename Root, typename Options>
+inline auto use_static(Root&& root, Options&& options) {
+    return [root = std::forward<Root>(root), options = std::forward<Options>(options)](context& ctx,
+                                                                                       std::function<void()> next) {
         static const auto handler = [](context& ctx, std::string&& root, const static_file::options& static_options) {
             if (ctx.method() != "GET" && ctx.method() != "HEAD") {
                 return;
@@ -69,9 +70,9 @@ inline auto use_static(T&& t, O&& o) {
     };
 }
 
-template <typename T>
-inline auto use_static(T&& root) {
-    return use_static(std::forward<T>(root), static_file::options{});
+template <typename Root>
+inline auto use_static(Root&& root) {
+    return use_static(std::forward<Root>(root), static_file::options{});
 }
 
 } // namespace detail
