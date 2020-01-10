@@ -462,10 +462,6 @@ ctx.body() << "hello cuehttp";
 
 ### cue::http::request
 
-#### const std::string& version() const
-
-获取请求版本。
-
 #### const std::string& get(const std::string& field) const
 
 获取请求中header信息中对应field的value，无则返回空字符串。
@@ -563,10 +559,6 @@ sid=hosdghtsdvojoj
 获取请求携带的body。
 
 ### cue::http::response
-
-#### void version(const std::string&/std::string&& version)
-
-设置响应版本。
 
 #### unsigned status() const
 

@@ -44,8 +44,12 @@ public:
         delete parser_;
     }
 
-    const std::string& version() const noexcept {
-        return version_;
+    unsigned version_major() const noexcept {
+        return version_major_;
+    }
+
+    unsigned version_minor() const noexcept {
+        return version_minor_;
     }
 
     const std::string& get(const std::string& field) const {
@@ -139,7 +143,6 @@ public:
 
     void reset() noexcept {
         has_more_requests_ = true;
-        version_.clear();
         host_.clear();
         hostname_.clear();
         url_.clear();
@@ -217,7 +220,8 @@ private:
         self->value_.clear();
 
         // version
-        self->version_ = std::to_string(parser->http_major) + "." + std::to_string(parser->http_minor);
+        self->version_major_ = parser->http_major;
+        self->version_minor_ = parser->http_minor;
 
         // method
         self->method_ = detail::utils::to_method_string(parser->method);
@@ -244,8 +248,11 @@ private:
         }
 
         // keepalive
-        if (self->version_ == "1.1" && detail::utils::iequals(self->get("Connection"), "keep-alive")) {
-            self->keepalive_ = true;
+        if (self->version_minor_ == 1) {
+            const auto& connection = self->get("Connection");
+            if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
+                self->keepalive_ = true;
+            }
         }
 
         // cookie
@@ -311,7 +318,8 @@ private:
     http_parser* parser_;
     http_parser_settings parser_settings_;
     bool has_more_requests_{true};
-    std::string version_;
+    unsigned version_major_{1};
+    unsigned version_minor_{1};
     std::string host_;
     std::string hostname_;
     std::string url_;

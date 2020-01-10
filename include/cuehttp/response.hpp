@@ -36,9 +36,12 @@ public:
         : cookies_{cookies}, reply_handler_{std::move(handler)} {
     }
 
-    template <typename Version>
-    void version(Version&& version) {
-        version_ = std::forward<Version>(version);
+    void version_major(unsigned version) {
+        version_major_ = version;
+    }
+
+    void version_minor(unsigned version) {
+        version_minor_ = version;
     }
 
     unsigned status() const noexcept {
@@ -112,7 +115,7 @@ public:
     }
 
     void keepalive(bool keepalive) {
-        if (keepalive && version_ == "1.1") {
+        if (keepalive && version_major_ == 1) {
             keepalive_ = true;
             set("Connection", "keep-alive");
         } else {
@@ -156,7 +159,6 @@ public:
 
     void reset() noexcept {
         headers_.clear();
-        version_ = "1.1";
         status_ = 404;
         message_ = "Not Found";
         keepalive_ = false;
@@ -180,7 +182,7 @@ private:
 
     std::string header_to_string() {
         std::ostringstream os;
-        os << "HTTP/" << version_ << ' ' << status_ << ' ' << message_ << "\r\n";
+        os << "HTTP/" << version_major_ << '.' << version_minor_ << ' ' << status_ << ' ' << message_ << "\r\n";
 
         // headers
         os << "Server: cuehttp\r\n";
@@ -210,7 +212,8 @@ private:
     }
 
     std::map<std::string, std::string> headers_;
-    std::string version_{"1.1"};
+    unsigned version_major_{1};
+    unsigned version_minor_{1};
     unsigned status_{404};
     std::string message_{"Not Found"};
     bool keepalive_{false};
@@ -223,7 +226,8 @@ private:
 };
 
 inline std::ostream& operator<<(std::ostream& os, const response& response) {
-    os << "HTTP/" << response.version_ << ' ' << response.status_ << ' ' << response.message_ << "\r\n";
+    os << "HTTP/" << response.version_major_ << '.' << response.version_minor_ << ' ' << response.status_ << ' '
+       << response.message_ << "\r\n";
 
     // headers
     os << "Server: cuehttp\r\n";

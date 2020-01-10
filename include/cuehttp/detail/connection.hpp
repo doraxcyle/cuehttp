@@ -110,7 +110,8 @@ protected:
     }
 
     void sync_headers() {
-        context_.res().version(context_.req().version());
+        context_.res().version_major(context_.req().version_major());
+        context_.res().version_minor(context_.req().version_minor());
         context_.res().keepalive(context_.req().keepalive());
     }
 
