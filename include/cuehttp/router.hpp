@@ -93,6 +93,10 @@ public:
         return *this;
     }
 
+    operator auto() const noexcept {
+        return make_routes();
+    }
+
 private:
     template <typename Func, typename = std::enable_if_t<!std::is_member_function_pointer<Func>::value>,
               typename... Args>

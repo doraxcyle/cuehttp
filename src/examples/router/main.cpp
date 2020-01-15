@@ -134,7 +134,8 @@ int main(int argc, char** argv) {
     route.get("/get9", o2);
 
     cuehttp app;
-    app.use(route.routes());
+    // app.use(route.routes());
+    app.use(route);
 
     app.listen(10000).run();
 
