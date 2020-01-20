@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <vector>
+#include <atomic>
 #include <boost/asio.hpp>
 
 #include "cuehttp/detail/noncopyable.hpp"
@@ -43,15 +44,17 @@ public:
     }
 
     static engines& default_engines() {
-        static engines engines{std::thread::hardware_concurrency()};
+        // static engines engines{std::thread::hardware_concurrency()};
+        static engines engines{1};
         return engines;
     }
 
     boost::asio::io_service& get() {
-        if (index_ == io_contexts_.size()) {
-            index_ = 0;
+        int index = {index_++};
+        if (index == io_contexts_.size()) {
+            index = index_ = 0;
         }
-        return *io_contexts_.at(index_++);
+        return *io_contexts_[index];
     }
 
     void run() {
@@ -77,7 +80,7 @@ private:
     std::vector<std::shared_ptr<boost::asio::io_service>> io_contexts_;
     std::vector<std::shared_ptr<boost::asio::io_service::work>> workers_;
     std::vector<std::thread> run_threads_;
-    size_t index_{0};
+    std::atomic_int index_{0};
 };
 
 } // namespace detail

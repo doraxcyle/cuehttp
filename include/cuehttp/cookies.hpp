@@ -205,32 +205,32 @@ private:
             const auto key_value = detail::utils::split(cookie, "=");
             // key=value
             if (key_value.size() >= 2) {
-                if (options_names.count(detail::utils::to_lower(key_value.at(0))) == 0) {
-                    name_ = std::move(key_value.at(0));
-                    value_ = std::move(key_value.at(1));
+                if (options_names.count(detail::utils::to_lower(key_value[0])) == 0) {
+                    name_ = std::move(key_value[0]);
+                    value_ = std::move(key_value[1]);
                 } else {
-                    if (detail::utils::iequals(key_value.at(0), "path")) {
-                        options_.path = std::move(key_value.at(1));
+                    if (detail::utils::iequals(key_value[0], "path")) {
+                        options_.path = std::move(key_value[1]);
                         continue;
                     }
-                    if (detail::utils::iequals(key_value.at(0), "domain")) {
-                        options_.domain = std::move(key_value.at(1));
+                    if (detail::utils::iequals(key_value[0], "domain")) {
+                        options_.domain = std::move(key_value[1]);
                         continue;
                     }
-                    if (detail::utils::iequals(key_value.at(0), "expires")) {
-                        options_.expires = std::move(key_value.at(1));
+                    if (detail::utils::iequals(key_value[0], "expires")) {
+                        options_.expires = std::move(key_value[1]);
                         continue;
                     }
-                    if (detail::utils::iequals(key_value.at(0), "max-age")) {
-                        options_.max_age = std::stoi(key_value.at(1));
+                    if (detail::utils::iequals(key_value[0], "max-age")) {
+                        options_.max_age = std::stoi(key_value[1]);
                     }
                 }
             } else {
-                if (detail::utils::iequals(key_value.at(0), "secure")) {
+                if (detail::utils::iequals(key_value[0], "secure")) {
                     options_.secure = true;
                     continue;
                 }
-                if (detail::utils::iequals(key_value.at(0), "HttpOnly")) {
+                if (detail::utils::iequals(key_value[0], "HttpOnly")) {
                     options_.http_only = true;
                 }
             }

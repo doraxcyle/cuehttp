@@ -37,7 +37,7 @@ public:
         compose();
     }
 
-    std::function<void(context&)> callback() const noexcept {
+    const std::function<void(context&)>& callback() const noexcept {
         return handler_;
     }
 
@@ -146,10 +146,10 @@ private:
                 if (++index == middlewares_.size()) {
                     return;
                 }
-                middlewares_.at(index)(ctx, next);
+                middlewares_[index](ctx, next);
             };
 
-            middlewares_.at(0)(ctx, next);
+            middlewares_[0](ctx, next);
         };
     }
 

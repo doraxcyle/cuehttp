@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "cuehttp/server.hpp"
+#include "cuehttp/ws_server.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/engines.hpp"
 #include "cuehttp/detail/middlewares.hpp"
@@ -32,7 +33,10 @@ namespace http {
 
 class cuehttp final : safe_noncopyable {
 public:
-    cuehttp() noexcept = default;
+    cuehttp() noexcept {
+        http_handler_ = middlewares_.callback();
+        ws_handler_ = [](context& ctx) { ctx.status(503); };
+    }
 
     inline static void run() {
         detail::engines::default_engines().run();
@@ -58,7 +62,13 @@ public:
     }
 
     std::function<void(context&)> callback() const noexcept {
-        return middlewares_.callback();
+        return [this](context& ctx) {
+            if (ctx.req().websocket()) {
+                ws_handler_(ctx);
+            } else {
+                http_handler_(ctx);
+            }
+        };
     }
 
     template <typename... Args>
@@ -67,9 +77,21 @@ public:
         return *this;
     }
 
+    ws_server& ws() {
+        if (!ws_) {
+            ws_ = std::make_unique<ws_server>();
+            ws_handler_ = ws_->callback();
+        }
+        return *ws_;
+    }
+
 private:
     http_t server_;
     detail::middlewares middlewares_;
+    std::function<void(context&)> http_handler_;
+    // websocket
+    std::unique_ptr<ws_server> ws_;
+    std::function<void(context&)> ws_handler_;
 };
 
 } // namespace http

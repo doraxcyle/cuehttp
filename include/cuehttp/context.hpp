@@ -26,6 +26,7 @@
 #include "cuehttp/response.hpp"
 #include "cuehttp/cookies.hpp"
 #include "cuehttp/session.hpp"
+#include "cuehttp/websocket.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
@@ -33,8 +34,10 @@ namespace http {
 
 class context final : safe_noncopyable {
 public:
-    context(detail::reply_handler handler, bool https) noexcept
-        : response_{cookies_, std::move(handler)}, request_{https, cookies_, response_} {
+    context(detail::reply_handler handler, bool https, detail::ws_send_handler ws_send_handler) noexcept
+        : response_{cookies_, std::move(handler)},
+          request_{https, cookies_, response_},
+          ws_send_handler_{std::move(ws_send_handler)} {
     }
 
     request& req() noexcept {
@@ -43,6 +46,11 @@ public:
 
     response& res() noexcept {
         return response_;
+    }
+
+    class websocket& websocket() {
+        make_ws();
+        return *websocket_;
     }
 
     // request
@@ -143,7 +151,7 @@ public:
 
     template <typename Options>
     void session(Options&& options) {
-        session_ = std::make_shared<class session>(std::forward<Options>(options), *this, cookies_);
+        session_ = std::make_unique<class session>(std::forward<Options>(options), *this, cookies_);
     }
 
     bool has_body() const noexcept {
@@ -170,10 +178,19 @@ public:
     }
 
 private:
+    void make_ws() {
+        assert(request_.websocket());
+        if (!websocket_) {
+            websocket_ = std::make_shared<class websocket>(ws_send_handler_);
+        }
+    }
+
     class cookies cookies_;
     response response_;
     request request_;
-    std::shared_ptr<class session> session_{nullptr};
+    std::shared_ptr<class websocket> websocket_{nullptr};
+    detail::ws_send_handler ws_send_handler_;
+    std::unique_ptr<class session> session_{nullptr};
 };
 
 } // namespace http

@@ -141,6 +141,10 @@ public:
         return has_more_requests_;
     }
 
+    bool websocket() const noexcept {
+        return websocket_;
+    }
+
     void reset() noexcept {
         has_more_requests_ = true;
         host_.clear();
@@ -157,6 +161,7 @@ public:
         charset_.clear();
         content_length_ = -1;
         keepalive_ = false;
+        websocket_ = false;
         cookies_.reset();
         body_.clear();
         body_.shrink_to_fit();
@@ -247,11 +252,21 @@ private:
             self->content_length_ = parser->content_length;
         }
 
-        // keepalive
+        // keepalive/websocket
         if (self->version_minor_ == 1) {
             const auto& connection = self->get("Connection");
             if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
                 self->keepalive_ = true;
+            }
+
+            if (parser->method == http_method::HTTP_GET && detail::utils::iequals(connection, "Upgrade")) {
+                const auto& upgrade = self->get("Upgrade");
+                const auto& key = self->get("Sec-WebSocket-Key");
+                const auto& ws_version = self->get("Sec-WebSocket-Version");
+                if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
+                    self->keepalive_ = true;
+                    self->websocket_ = true;
+                }
             }
         }
 
@@ -334,6 +349,7 @@ private:
     std::string charset_;
     long long content_length_{-1};
     bool keepalive_{false};
+    bool websocket_{false};
     cookies& cookies_;
     std::string body_;
     std::string field_;

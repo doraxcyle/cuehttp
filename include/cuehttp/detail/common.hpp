@@ -26,6 +26,9 @@
 #include <chrono>
 #include <map>
 #include <sstream>
+#include <vector>
+#include <string>
+#include <random>
 #include <boost/algorithm/string.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
@@ -48,12 +51,36 @@ class context;
 
 namespace detail {
 
+struct ws_frame;
+
 // types
 using reply_handler = std::function<bool(const std::string&)>;
 using http_socket = boost::asio::ip::tcp::socket;
 #ifdef ENABLE_HTTPS
 using https_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 #endif // ENABLE_HTTPS
+using ws_send_handler = std::function<void(detail::ws_frame&&)>;
+
+enum class ws_opcode : uint8_t { continuation = 0, text, binary, close = 8, ping, pong };
+
+struct ws_reader final {
+    char header[2]{0};
+    std::vector<char> length_mask_buffer;
+    bool fin{true};
+    bool last_fin{true};
+    ws_opcode opcode;
+    bool has_mask{false};
+    uint64_t length{0};
+    char mask[4]{0};
+    std::vector<char> payload_buffer;
+};
+
+struct ws_frame final {
+    bool fin{true};
+    ws_opcode opcode;
+    bool mask{true};
+    std::string payload;
+};
 
 // global variables
 struct global_value final : safe_noncopyable {
@@ -385,36 +412,14 @@ struct utils final : safe_noncopyable {
         const auto uuid = boost::uuids::random_generator()();
         return boost::uuids::to_string(uuid);
     }
+
+    inline static uint32_t random_uint32() {
+        std::mt19937 generator{static_cast<unsigned long>(std::chrono::system_clock::now().time_since_epoch().count())};
+        return generator();
+    }
 };
 
 // utilities classes
-class defer_ final : safe_noncopyable {
-public:
-    defer_() noexcept = default;
-
-    ~defer_() noexcept {
-        if (f_) {
-            f_();
-        }
-    }
-
-    defer_(defer_&& rhs) noexcept : f_{std::move(rhs.f_)} {
-    }
-
-    template <typename F>
-    void operator+(F&& f) {
-        f_ = std::forward<F>(f);
-    }
-
-private:
-    std::function<void()> f_;
-};
-
-#define DEFER_CONCAT_NAME(l, r) l##r
-#define DEFER_CREATE_NAME DEFER_CONCAT_NAME(__FUNCTION__, __LINE__)
-#define cue_defer                                  \
-    cue::http::detail::defer_ DEFER_CREATE_NAME{}; \
-    DEFER_CREATE_NAME +
 
 } // namespace detail
 } // namespace http

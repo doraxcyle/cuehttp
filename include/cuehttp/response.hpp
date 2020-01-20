@@ -117,7 +117,6 @@ public:
     void keepalive(bool keepalive) {
         if (keepalive && version_major_ == 1) {
             keepalive_ = true;
-            set("Connection", "keep-alive");
         } else {
             keepalive_ = false;
             set("Connection", "close");
@@ -193,6 +192,10 @@ private:
             os << header.first << ": " << header.second << "\r\n";
         }
 
+        if (get("Connection").empty() && keepalive_) {
+            os << "Connection: keep-alive\r\n";
+        }
+
         // cookies
         const auto& cookies = cookies_.get();
         for (const auto& cookie : cookies) {
@@ -233,6 +236,10 @@ inline std::ostream& operator<<(std::ostream& os, const response& response) {
     os << "Server: cuehttp\r\n";
     for (const auto& header : response.headers_) {
         os << header.first << ": " << header.second << "\r\n";
+    }
+
+    if (response.get("Connection").empty() && response.keepalive_) {
+        os << "Connection: keep-alive\r\n";
     }
 
     // cookies

@@ -351,10 +351,10 @@ private:
                 if (++index == handlers.size()) {
                     return;
                 }
-                handlers.at(index)(ctx, next);
+                handlers[index](ctx, next);
             };
 
-            handlers.at(0)(ctx, next);
+            handlers[0](ctx, next);
         };
         handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)), std::move(handler));
     }

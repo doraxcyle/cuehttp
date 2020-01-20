@@ -26,6 +26,8 @@
 #include "cuehttp/response.hpp"
 #include "cuehttp/server.hpp"
 #include "cuehttp/cuehttp.hpp"
+#include "cuehttp/ws_server.hpp"
+#include "cuehttp/websocket.hpp"
 #include "cuehttp/router.hpp"
 #include "cuehttp/use_session.hpp"
 #include "cuehttp/send.hpp"
