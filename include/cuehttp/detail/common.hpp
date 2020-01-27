@@ -348,13 +348,15 @@ struct utils final : safe_noncopyable {
     }
 
     inline static std::string to_gmt_string(std::time_t time) noexcept {
-        struct tm gmt;
-        const auto now = gmtime(&time);
-        char buff[64]{0};
-        if (now) {
-            memcpy(&gmt, now, sizeof(gmt));
-            std::strftime(buff, sizeof(buff), "%a, %d %b %Y %H:%M:%S %Z", &gmt);
-        }
+        struct tm* gmt;
+#ifdef _MSC_VER
+        gmt = gmtime(&time);
+#else
+        struct tm now;
+        gmt = gmtime_r(&time, &now);
+#endif // _MSC_VER
+        char buff[32]{0};
+        std::strftime(buff, sizeof(buff), "%a, %d %b %Y %H:%M:%S %Z", gmt);
         return buff;
     }
 

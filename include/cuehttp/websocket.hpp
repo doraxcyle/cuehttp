@@ -50,7 +50,7 @@ public:
     explicit websocket(detail::ws_send_handler handler) noexcept : send_handler_{std::move(handler)} {
     }
 
-    std::weak_ptr<websocket> weak() {
+    auto shared() {
         return shared_from_this();
     }
 

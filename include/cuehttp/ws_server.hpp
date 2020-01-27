@@ -46,15 +46,8 @@ public:
 
     void broadcast(const std::string& msg, ws_send::options options = {}) {
         std::unique_lock<std::mutex> lock{clients_mutex_};
-        auto it = clients_.begin();
-        for (; it != clients_.end();) {
-            auto ws = it->lock();
-            if (ws) {
-                ws->send(std::string{msg}, options);
-                ++it;
-            } else {
-                it = clients_.erase(it);
-            }
+        for (const auto& client : clients_) {
+            client->send(std::string{msg}, options);
         }
     }
 
@@ -62,12 +55,12 @@ public:
         return [this](context& ctx) {
             ctx.websocket().on_open([this, &ctx]() {
                 std::unique_lock<std::mutex> lock{clients_mutex_};
-                clients_.emplace(ctx.websocket().weak());
+                clients_.emplace(ctx.websocket().shared());
             });
 
             ctx.websocket().on_close([this, &ctx]() {
                 std::unique_lock<std::mutex> lock{clients_mutex_};
-                clients_.erase(ctx.websocket().weak());
+                clients_.erase(ctx.websocket().shared());
             });
 
             // call middlewares
@@ -89,7 +82,7 @@ public:
 private:
     detail::middlewares middlewares_;
     std::function<void(context&)> callback_;
-    std::set<std::weak_ptr<websocket>, std::owner_less<>> clients_;
+    std::set<std::shared_ptr<websocket>> clients_;
     std::mutex clients_mutex_;
 };
 
