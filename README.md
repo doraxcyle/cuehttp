@@ -7,7 +7,7 @@
 
 ## 简介
 
-cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[http-parser](https://github.com/nodejs/http-parser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
+cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP/WebSocket框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[http-parser](https://github.com/nodejs/http-parser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
 
 cuehttp内部包含一组中间件函数，注册的中间件会根据中间件的添加顺序执行。在中间件中也可以选择是否进行下一个中间件的执行或改变中间件内的行为执行顺序。
 
@@ -67,6 +67,46 @@ int main(int argc, char** argv) {
     auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
     https_server.listen(443);
 
+    cuehttp::run();
+
+    return 0;
+}
+```
+
+### WebSocket
+
+cuehttp支持WebSocket，支持ws/wss同时使用。支持wss需要开启HTTPS(见上节)。
+
+```c++
+#include <iostream>
+#include <vector>
+
+#include <cuehttp.hpp>
+
+using namespace cue::http;
+
+int main(int argc, char** argv) {
+    cuehttp app;
+    app.ws().use([](context& ctx) {
+        ctx.websocket().on_open([&ctx]() {
+            std::cout << "websocket on_open" << std::endl;
+            ctx.websocket().send("hello");
+        });
+        ctx.websocket().on_close([]() {
+            std::cout << "websocket on_close" << std::endl;
+        });
+        ctx.websocket().on_message([&ctx](std::string&& msg) {
+            std::cout << "websocket msg: " << msg << std::endl;
+            ctx.websocket().send(std::move(msg));
+        });
+    }));
+    
+    auto http_server = http::create_server(app.callback());
+    http_server.listen(10000);
+
+    auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
+    https_server.listen(443);
+    
     cuehttp::run();
 
     return 0;
@@ -282,6 +322,10 @@ cuehttp主体程序，用于注册中间件、启停HTTP服务。
 
 停止服务。
 
+#### ws_server& ws()
+
+返回WebSocket server操作示例。
+
 ### cue::http::server
 
 #### cue::http::server& listen(unsigned port, [const std::string&/std::string&& host])
@@ -320,6 +364,25 @@ auto server = https::create_server(app.callback(), "server.key", "server.crt");
 server.listen(10000).run();
 ```
 
+### cue::http::ws_server
+
+#### cue::http::ws_server& use(...)
+
+注册中间件到WebSocket server中，返回ws_server对象的引用用于进行链式调用。具体使用参考[中间件级联](#中间件级联)，[内置中间件](#内置中间件)。
+
+#### void broadcast(const std::string& msg, [ws_send::options options])
+
+对所有连接的客户端进行消息广播。
+| ws_send::options | 类型 | 描述                       | 默认值 |
+| ---------------- | ---- | -------------------------- | ------ |
+| fin              | bool | 发送的消息是否为最后结束帧 | true   |
+| mask             | bool | payload是否需要掩码加密    | true   |
+| binary           | bool | 可以访问此cookie的域名     | false  |
+
+#### std::function<void(context&)> callback()
+
+返回设置给WebSocket处理中间件handler。
+
 ### cue::http::context
 
 chehttp中间件接口的HTTP处理上下文。
@@ -331,6 +394,10 @@ chehttp中间件接口的HTTP处理上下文。
 #### cue::http::response& res()
 
 获取会话中的响应结构的引用。
+
+#### cue::http::websocket& websocket()
+
+获取会话中的websocket结构的引用。
 
 #### const std::map<std::string, std::string>& headers() const
 
@@ -624,6 +691,28 @@ sid=hosdghtsdvojoj
 response.body() << "hello cuehttp";
 ```
 
+### cue::http::websocket
+
+#### void on_open(const std::function<void()>&/std::function<void()>&& func)
+
+设置WebSocket连接建立回调。
+
+#### void on_close(const std::function<void()>&/std::function<void()>&& func)
+
+设置WebSocket连接关闭回调。
+
+#### void on_message(const std::function\<void(std::string&&)>&/std::function\<void(std::string&&)>&& func)
+
+设置WebSocket连接消息回调。
+
+#### void send(const std::string&/std::string&& msg, [ws_send::options options])
+
+向客户端发送消息。options同[options](#void broadcast(const std::string& msg, [ws_send::options options]))。
+
+#### void close()
+
+向客户端发送关闭WebSocket连接消息。
+
 ### cue::http::cookies
 
 #### const std::string& get(const std::string& name) const
@@ -725,7 +814,7 @@ response.body() << "hello cuehttp";
 
 ### router
 
-默认的cuehttp的server是不包含HTTP路由功能的，所有的HTTP请求都将回调注册的中间件，router是cuehttp默认的路由中间件，router会根据注册的HTTP method和path进行请求分发。router支持配置多种method、multiple、redirect等。
+默认的cuehttp的server是不包含HTTP/WebSocket路由功能的，所有的HTTP请求都将回调注册的中间件，router是cuehttp默认的路由中间件，router会根据注册的HTTP method和path进行请求分发。router支持配置多种method、multiple、redirect等。router也可用于WebSocket server。
 
 #### 示例
 
@@ -743,6 +832,19 @@ int main(int argc, char** argv) {
     
     cuehttp app;
     app.use(route.routes());
+    
+    router ws_route;
+    app.ws().use(ws_route.all("/ws", [](context& ctx) {
+        ctx.websocket().on_open([&ctx]() {
+            std::cout << "websocket on_open" << std::endl;
+            ctx.websocket().send("hello");
+        });
+        ctx.websocket().on_close([]() { std::cout << "websocket on_close" << std::endl; });
+        ctx.websocket().on_message([&ctx](std::string&& msg) {
+            std::cout << "websocket msg: " << msg << std::endl;
+            ctx.websocket().send(std::move(msg));
+        });
+    }));
     
     app.listen(10000).run();
 
