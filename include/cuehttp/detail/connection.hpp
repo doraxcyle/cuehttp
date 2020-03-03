@@ -68,6 +68,10 @@ public:
 
 protected:
     void close() {
+        if (ws_handshake_) {
+            context_.websocket().emit(detail::ws_event::close);
+            ws_handshake_ = false;
+        }
         boost::system::error_code code;
         socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, code);
         socket().close(code);
@@ -153,7 +157,8 @@ protected:
     }
 
     void check_connection() {
-        if (context_.req().websocket()) {
+        if (context_.req().websocket() && context_.status() == 101) {
+            ws_handshake_ = true;
             if (!ws_reader_) {
                 ws_reader_ = std::make_unique<detail::ws_reader>();
             }
@@ -272,7 +277,6 @@ protected:
             break;
         }
         case detail::ws_opcode::close:
-            context_.websocket().emit(detail::ws_event::close);
             close();
             return;
         case detail::ws_opcode::ping:
@@ -294,7 +298,7 @@ protected:
         std::unique_lock<std::mutex> lock{write_queue_mutex_};
         write_queue_.emplace(std::move(frame));
 
-        if (write_queue_.size() == 1) {
+        if (write_queue_.size() == 1 && ws_handshake_) {
             lock.unlock();
             do_send_ws_frame();
         }
@@ -370,6 +374,7 @@ protected:
     std::unique_ptr<detail::ws_reader> ws_reader_{nullptr};
     context context_;
     std::function<void(context&)> handler_;
+    bool ws_handshake_{false};
     std::queue<detail::ws_frame> write_queue_;
     std::mutex write_queue_mutex_;
 };

@@ -66,6 +66,9 @@ public:
             // call middlewares
             callback_(ctx);
 
+            if (ctx.status() != 404) {
+                return;
+            }
             // websocket handshake response
             auto key = ctx.get("Sec-WebSocket-Key");
             key += ws_magic_key;
