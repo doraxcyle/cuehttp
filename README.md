@@ -101,13 +101,13 @@ int main(int argc, char** argv) {
             ctx.websocket().send(std::move(msg));
         });
     }));
-    
+
     auto http_server = http::create_server(app.callback());
     http_server.listen(10000);
 
     auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
     https_server.listen(443);
-    
+
     cuehttp::run();
 
     return 0;
@@ -138,21 +138,21 @@ int main(int argc, char** argv) {
     app.use([](context& ctx) {
         std::cout << "0" << std::endl;
     });
-    
+
     app.use([](context& ctx, std::function<void()> next) {
         std::cout << "1-1" << std::endl;
         next();
         std::cout << "1-2" << std::endl;
     });
-    
+
     app.use([](context& ctx, std::function<void()> next) {
         std::cout << "2" << std::endl;
     });
-    
+
     app.use([](context& ctx, std::function<void()> next) {
         std::cout << "3" << std::endl;
     });
-    
+
     app.listen(10000).run();
 
     return 0;
@@ -830,10 +830,10 @@ int main(int argc, char** argv) {
         ctx.type("text/html");
         ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
     });
-    
+
     cuehttp app;
     app.use(route.routes());
-    
+
     router ws_route;
     app.ws().use(ws_route.all("/ws", [](context& ctx) {
         ctx.websocket().on_open([&ctx]() {
@@ -846,7 +846,7 @@ int main(int argc, char** argv) {
             ctx.websocket().send(std::move(msg));
         });
     }));
-    
+
     app.listen(10000).run();
 
     return 0;
@@ -962,7 +962,7 @@ route.get(
         ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
         next();
     },
-    [](context& ctx, std::function<void()> next) { 
+    [](context& ctx, std::function<void()> next) {
         std::cout << "after get" << std::endl;
     });
 

@@ -61,7 +61,7 @@ using https_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 #endif // ENABLE_HTTPS
 using ws_send_handler = std::function<void(detail::ws_frame&&)>;
 
-enum class ws_opcode : uint8_t { continuation = 0, text, binary, close = 8, ping, pong };
+enum class ws_opcode : uint8_t { continuation = 0, text = 1, binary = 2, close = 8, ping = 9, pong = 10 };
 
 struct ws_reader final {
     char header[2]{0};
@@ -151,7 +151,7 @@ struct utils final : safe_noncopyable {
         return lower_str;
     }
 
-    static std::map<std::string, std::string> parse_query(const std::string& querystring) {
+    static std::multimap<std::string, std::string> parse_query(const std::string& querystring) {
         static const auto decode = [](const std::string& str, std::string& decoded) {
             auto it = str.cbegin();
             auto end = str.cend();
@@ -190,7 +190,7 @@ struct utils final : safe_noncopyable {
             }
         };
 
-        std::map<std::string, std::string> query;
+        std::multimap<std::string, std::string> query;
         std::string::const_iterator it{querystring.begin()}, end{querystring.end()};
         while (it != end) {
             std::string name, value;
@@ -349,12 +349,12 @@ struct utils final : safe_noncopyable {
 
     inline static std::string to_gmt_string(std::time_t time) noexcept {
         struct tm* gmt;
-#ifdef _MSC_VER
-        gmt = gmtime(&time);
-#else
+#ifdef __linux__
         struct tm now;
         gmt = gmtime_r(&time, &now);
-#endif // _MSC_VER
+#else
+        gmt = gmtime(&time);
+#endif // __linux__
         char buff[32]{0};
         std::strftime(buff, sizeof(buff), "%a, %d %b %Y %H:%M:%S %Z", gmt);
         return buff;

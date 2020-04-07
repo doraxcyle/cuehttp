@@ -97,7 +97,7 @@ public:
         return querystring_;
     }
 
-    const std::map<std::string, std::string>& query() const noexcept {
+    const std::multimap<std::string, std::string>& query() const noexcept {
         return query_;
     }
 
@@ -342,7 +342,7 @@ private:
     std::string href_;
     std::string path_;
     std::string querystring_;
-    std::map<std::string, std::string> query_;
+    std::multimap<std::string, std::string> query_;
     std::string search_;
     std::string method_;
     std::string content_type_;
