@@ -33,9 +33,9 @@ namespace detail {
 
 class engines final : safe_noncopyable {
 public:
-    explicit engines(size_t size) noexcept {
+    explicit engines(std::size_t size) noexcept {
         assert(size != 0);
-        for (size_t i{0}; i < size; ++i) {
+        for (std::size_t i{0}; i < size; ++i) {
             auto io_context = std::make_shared<boost::asio::io_service>();
             auto worker = std::make_shared<boost::asio::io_service::work>(*io_context);
             io_contexts_.emplace_back(std::move(io_context));

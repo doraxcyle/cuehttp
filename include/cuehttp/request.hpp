@@ -129,7 +129,7 @@ public:
         return buffer_;
     }
 
-    int parse(size_t size) noexcept {
+    int parse(std::size_t size) noexcept {
         return http_parser_execute(parser_, &parser_settings_, buffer_.data(), size);
     }
 
@@ -193,14 +193,14 @@ private:
         return 0;
     }
 
-    static int on_url(http_parser* parser, const char* at, size_t length) {
+    static int on_url(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->url_.append(at, length);
         self->parse_url();
         return 0;
     }
 
-    static int on_header_field(http_parser* parser, const char* at, size_t length) {
+    static int on_header_field(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         // add header
         if (!self->field_.empty() && !self->value_.empty()) {
@@ -212,7 +212,7 @@ private:
         return 0;
     }
 
-    static int on_header_value(http_parser* parser, const char* at, size_t length) {
+    static int on_header_value(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->value_.assign(at, length);
         return 0;
@@ -279,7 +279,7 @@ private:
         return 0;
     }
 
-    static int on_body(http_parser* parser, const char* at, size_t length) {
+    static int on_body(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->body_.append(at, length);
         return 0;

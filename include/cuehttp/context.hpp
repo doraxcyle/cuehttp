@@ -163,7 +163,7 @@ public:
         response_.body(std::forward<Body>(body));
     }
 
-    void body(const char* buffer, size_t size) {
+    void body(const char* buffer, std::size_t size) {
         response_.body(buffer, size);
     }
 

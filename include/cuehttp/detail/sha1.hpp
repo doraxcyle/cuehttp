@@ -96,7 +96,7 @@ inline void innerHash(unsigned int* result, unsigned int* w) {
  * @param hash should point to a buffer of at least 20 bytes of size for storing
  * the sha1 result in.
  */
-inline void calc(const void* src, size_t bytelength, unsigned char* hash) {
+inline void calc(const void* src, std::size_t bytelength, unsigned char* hash) {
     // Init the result array.
     unsigned int result[5] = {0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0};
 
@@ -108,11 +108,11 @@ inline void calc(const void* src, size_t bytelength, unsigned char* hash) {
 
     // Loop through all complete 64byte blocks.
 
-    size_t endCurrentBlock;
-    size_t currentBlock = 0;
+    std::size_t endCurrentBlock;
+    std::size_t currentBlock = 0;
 
     if (bytelength >= 64) {
-        size_t const endOfFullBlocks = bytelength - 64;
+        std::size_t const endOfFullBlocks = bytelength - 64;
 
         while (currentBlock <= endOfFullBlocks) {
             endCurrentBlock = currentBlock + 64;
@@ -132,7 +132,7 @@ inline void calc(const void* src, size_t bytelength, unsigned char* hash) {
     // Handle the last and not full 64 byte block if existing.
     endCurrentBlock = bytelength - currentBlock;
     clearWBuffert(w);
-    size_t lastBlockBytes = 0;
+    std::size_t lastBlockBytes = 0;
     for (; lastBlockBytes < endCurrentBlock; ++lastBlockBytes) {
         w[lastBlockBytes >> 2] |= (unsigned int)sarray[lastBlockBytes + currentBlock]
                                   << ((3 - (lastBlockBytes & 3)) << 3);

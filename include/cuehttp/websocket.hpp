@@ -31,7 +31,7 @@ namespace http {
 
 namespace detail {
 
-enum class ws_event : uint8_t { open, close, msg };
+enum class ws_event : std::uint8_t { open = 0, close = 1, msg = 2 };
 
 } // namespace detail
 
@@ -100,7 +100,7 @@ public:
         case detail::ws_event::msg: {
             if (!msg_handlers_.empty()) {
                 const auto last_index = msg_handlers_.size() - 1;
-                for (size_t i{0}; i < last_index; ++i) {
+                for (std::size_t i{0}; i < last_index; ++i) {
                     msg_handlers_[i](std::string{msg});
                 }
                 const auto& last_handler = msg_handlers_[last_index];

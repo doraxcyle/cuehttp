@@ -142,7 +142,7 @@ public:
         length(body_.length());
     }
 
-    void body(const char* buffer, size_t size) {
+    void body(const char* buffer, std::size_t size) {
         body_.assign(buffer, size);
         length(body_.length());
     }

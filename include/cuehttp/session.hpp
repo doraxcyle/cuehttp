@@ -183,7 +183,7 @@ private:
 
         using namespace nlohmann;
         const auto root = json::parse(json);
-        if (!root.empty() && root.count("_expire") == 1 && root["_expire"].get<int64_t>() < detail::utils::now()) {
+        if (!root.empty() && root.count("_expire") == 1 && root["_expire"].get<std::int64_t>() < detail::utils::now()) {
             return false;
         }
 

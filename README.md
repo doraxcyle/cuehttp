@@ -516,7 +516,7 @@ sid=hosdghtsdvojoj
 
 设置响应体。
 
-#### void body(const char* buffer, size_t size)
+#### void body(const char* buffer, std::size_t size)
 
 设置响应体，传入buffer和buffer大小。
 
@@ -680,7 +680,7 @@ sid=hosdghtsdvojoj
 
 设置响应体，`std::string`类型。
 
-#### void body(const char* buffer, size_t size)
+#### void body(const char* buffer, std::size_t size)
 
 设置响应体，传入buffer和buffer大小。
 
@@ -1159,7 +1159,7 @@ int main(int argc, char** argv) {
 | hidden            | bool                      | 是否支持目录中的隐藏文件发送，认为.开头的目录以及文件是隐藏的 | false              |
 | index             | std::string               | 配置目录访问的默认文件                                       |                    |
 | extensions        | std::vector\<std::string> | 配置目录中的文件访问匹配扩展名，按照内部顺序进行优先匹配     |                    |
-| chunked_threshold | size_t                    | 文件发送Transfer-Encoding是否使用chunked，当大于此值时使用chunked，否则不配置chunked | 5,242,880(5MB大小) |
+| chunked_threshold | std::size_t                    | 文件发送Transfer-Encoding是否使用chunked，当大于此值时使用chunked，否则不配置chunked | 5,242,880(5MB大小) |
 | cross_domain      | bool                      | 是否允许跨域，允许跨域时添加允许跨域header。<br/>`Access-Control-Allow-Origin: *` `Access-Control-Allow-Headers: X-Requested-With ` <br/>`Access-Control-Allow-Methods: GET,POST,OPTIONS` | false              |
 
 ### static

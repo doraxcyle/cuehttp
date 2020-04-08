@@ -61,7 +61,7 @@ using https_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 #endif // ENABLE_HTTPS
 using ws_send_handler = std::function<void(detail::ws_frame&&)>;
 
-enum class ws_opcode : uint8_t { continuation = 0, text = 1, binary = 2, close = 8, ping = 9, pong = 10 };
+enum class ws_opcode : std::uint8_t { continuation = 0, text = 1, binary = 2, close = 8, ping = 9, pong = 10 };
 
 struct ws_reader final {
     char header[2]{0};
@@ -70,7 +70,7 @@ struct ws_reader final {
     bool last_fin{true};
     ws_opcode opcode;
     bool has_mask{false};
-    uint64_t length{0};
+    std::uint64_t length{0};
     char mask[4]{0};
     std::vector<char> payload_buffer;
 };
@@ -109,7 +109,7 @@ using is_middleware_list =
 
 // utilities functions
 struct utils final : safe_noncopyable {
-    inline static int64_t now() {
+    inline static std::int64_t now() {
         using namespace std::chrono;
         return duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count();
     }
@@ -361,8 +361,8 @@ struct utils final : safe_noncopyable {
     }
 
     static std::vector<std::string> split(const std::string& str, const std::string& separators) noexcept {
-        size_t start{0};
-        size_t end{str.find_first_of(separators)};
+        std::size_t start{0};
+        std::size_t end{str.find_first_of(separators)};
         std::vector<std::string> tookens;
         while (end <= std::string::npos) {
             tookens.emplace_back(str.substr(start, end - start));
@@ -381,8 +381,8 @@ struct utils final : safe_noncopyable {
         std::stringstream result;
         std::copy(base64_encode_iterator{source.cbegin()}, base64_encode_iterator{source.cend()},
                   std::ostream_iterator<char>{result});
-        size_t equal_count{(3 - source.length() % 3) % 3};
-        for (size_t i{0}; i < equal_count; ++i) {
+        std::size_t equal_count{(3 - source.length() % 3) % 3};
+        for (std::size_t i{0}; i < equal_count; ++i) {
             result.put('=');
         }
         return result.str();
@@ -394,7 +394,7 @@ struct utils final : safe_noncopyable {
         std::string result;
         try {
             std::string temp{source};
-            size_t end_index{temp.size() - 1};
+            std::size_t end_index{temp.size() - 1};
             while (temp[end_index] == '=') {
                 temp.erase(end_index);
                 end_index = temp.size() - 1;
@@ -415,7 +415,7 @@ struct utils final : safe_noncopyable {
         return boost::uuids::to_string(uuid);
     }
 
-    inline static uint32_t random_uint32() {
+    inline static std::uint32_t random_uint32() {
         std::mt19937 generator{static_cast<unsigned long>(std::chrono::system_clock::now().time_since_epoch().count())};
         return generator();
     }

@@ -219,13 +219,13 @@ protected:
 
                 if (bytes == 2) {
                     ws_reader_->length =
-                        detail::from_be(*reinterpret_cast<uint16_t*>(ws_reader_->length_mask_buffer.data()));
+                        detail::from_be(*reinterpret_cast<std::uint16_t*>(ws_reader_->length_mask_buffer.data()));
                     if (ws_reader_->has_mask) {
                         memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 2, 4);
                     }
                 } else if (bytes == 8) {
                     ws_reader_->length =
-                        detail::from_be(*reinterpret_cast<uint64_t*>(ws_reader_->length_mask_buffer.data()));
+                        detail::from_be(*reinterpret_cast<std::uint64_t*>(ws_reader_->length_mask_buffer.data()));
                     if (ws_reader_->has_mask) {
                         memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 8, 4);
                     }
@@ -308,26 +308,26 @@ protected:
         auto& frame = get_frame();
         std::ostream os{&buffer_};
         // opcode
-        auto opcode = static_cast<uint8_t>(frame.opcode) | 0x80;
+        auto opcode = static_cast<std::uint8_t>(frame.opcode) | 0x80;
         os.write(reinterpret_cast<char*>(&opcode), 1);
         // length
-        uint8_t base_length{0};
-        uint16_t length16{0};
-        uint64_t length64{0};
+        std::uint8_t base_length{0};
+        std::uint16_t length16{0};
+        std::uint64_t length64{0};
         const auto size = frame.payload.size();
         if (size < 126) {
-            base_length |= static_cast<uint8_t>(size);
-            os.write(reinterpret_cast<char*>(&base_length), sizeof(uint8_t));
+            base_length |= static_cast<std::uint8_t>(size);
+            os.write(reinterpret_cast<char*>(&base_length), sizeof(std::uint8_t));
         } else if (size <= UINT16_MAX) {
             base_length |= 0x7e;
-            os.write(reinterpret_cast<char*>(&base_length), sizeof(uint8_t));
-            length16 = detail::to_be(static_cast<uint16_t>(size));
-            os.write(reinterpret_cast<char*>(&length16), sizeof(uint16_t));
+            os.write(reinterpret_cast<char*>(&base_length), sizeof(std::uint8_t));
+            length16 = detail::to_be(static_cast<std::uint16_t>(size));
+            os.write(reinterpret_cast<char*>(&length16), sizeof(std::uint16_t));
         } else {
             base_length |= 0x7f;
-            os.write(reinterpret_cast<char*>(&base_length), sizeof(uint8_t));
-            length64 = detail::to_be(static_cast<uint64_t>(size));
-            os.write(reinterpret_cast<char*>(&length64), sizeof(uint64_t));
+            os.write(reinterpret_cast<char*>(&base_length), sizeof(std::uint8_t));
+            length64 = detail::to_be(static_cast<std::uint64_t>(size));
+            os.write(reinterpret_cast<char*>(&length64), sizeof(std::uint64_t));
         }
 
         if (size > 0) {
