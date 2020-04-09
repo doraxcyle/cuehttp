@@ -40,16 +40,15 @@ namespace http {
 template <typename Socket, typename T>
 class base_server : safe_noncopyable {
 public:
-    base_server() noexcept : engines_{detail::engines::default_engines()} {
+    base_server() noexcept {
     }
 
-    explicit base_server(std::function<void(context&)> handler) noexcept
-        : handler_{std::move(handler)}, engines_{detail::engines::default_engines()} {
+    explicit base_server(std::function<void(context&)> handler) noexcept : handler_{std::move(handler)} {
     }
 
     virtual ~base_server() noexcept = default;
 
-    base_server(base_server&& rhs) noexcept : engines_{detail::engines::default_engines()} {
+    base_server(base_server&& rhs) noexcept {
         swap(rhs);
     }
 
@@ -79,13 +78,14 @@ public:
     }
 
     void run() {
-        engines_.run();
+        detail::engines::default_engines().run();
     }
 
 protected:
     void listen_impl(boost::asio::ip::tcp::resolver::query&& query) {
-        boost::asio::ip::tcp::endpoint endpoint{*boost::asio::ip::tcp::resolver{engines_.get()}.resolve(query)};
-        acceptor_ = std::make_shared<boost::asio::ip::tcp::acceptor>(engines_.get());
+        auto& engines = detail::engines::default_engines();
+        boost::asio::ip::tcp::endpoint endpoint{*boost::asio::ip::tcp::resolver{engines.get()}.resolve(query)};
+        acceptor_ = std::make_shared<boost::asio::ip::tcp::acceptor>(engines.get());
         acceptor_->open(endpoint.protocol());
         acceptor_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
         acceptor_->bind(endpoint);
@@ -97,7 +97,6 @@ protected:
         static_cast<T&>(*this).do_accept_real();
     }
 
-    detail::engines& engines_;
     std::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor_;
     std::function<void(context&)> handler_;
 };
@@ -127,7 +126,8 @@ public:
     }
 
     void do_accept_real() {
-        auto connector = std::make_shared<detail::connection<Socket>>(this->handler_, this->engines_.get());
+        auto connector =
+            std::make_shared<detail::connection<Socket>>(this->handler_, detail::engines::default_engines().get());
         this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
             if (!this->acceptor_->is_open()) {
                 return;
@@ -135,7 +135,7 @@ public:
 
             if (!code) {
                 connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
-                connector->start();
+                connector->run();
             }
 
             this->do_accept();
@@ -148,7 +148,7 @@ template <>
 class server<detail::https_socket> final : public base_server<detail::https_socket, server<detail::https_socket>>,
                                            safe_noncopyable {
 public:
-    explicit server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
+    server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
         : ssl_context_{boost::asio::ssl::context::sslv23}, base_server{std::move(handler)} {
         ssl_context_.use_certificate_chain_file(cert);
         ssl_context_.use_private_key_file(key, boost::asio::ssl::context::pem);
@@ -171,8 +171,8 @@ public:
     }
 
     void do_accept_real() {
-        auto connector = std::make_shared<detail::connection<detail::https_socket>>(this->handler_,
-                                                                                    this->engines_.get(), ssl_context_);
+        auto connector = std::make_shared<detail::connection<detail::https_socket>>(
+            this->handler_, detail::engines::default_engines().get(), ssl_context_);
         this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
             if (!this->acceptor_->is_open()) {
                 return;
@@ -180,7 +180,7 @@ public:
 
             if (!code) {
                 connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
-                connector->start();
+                connector->run();
             }
 
             this->do_accept();
