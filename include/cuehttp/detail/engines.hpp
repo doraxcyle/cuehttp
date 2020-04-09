@@ -44,8 +44,7 @@ public:
     }
 
     static engines& default_engines() {
-        // static engines engines{std::thread::hardware_concurrency()};
-        static engines engines{1};
+        static engines engines{std::thread::hardware_concurrency()};
         return engines;
     }
 
