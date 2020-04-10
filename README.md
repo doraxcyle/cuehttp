@@ -299,6 +299,12 @@ int main(int argc, char** argv) {
 
 ## API
 
+>   类型说明:
+>
+>   `string`: 所有std::string值类型、引用类型或可以转换为std::string的类型；
+>
+>   `map`: std::map的所有值类型或引用类型。
+
 ### cue::http::cuehttp
 
 cuehttp主体程序，用于注册中间件、启停HTTP服务。
@@ -307,7 +313,7 @@ cuehttp主体程序，用于注册中间件、启停HTTP服务。
 
 注册中间件到cuehttp中，返回cuehttp对象的引用用于进行链式调用。具体使用参考[中间件级联](#中间件级联)，[内置中间件](#内置中间件)。
 
-#### cue::http::cuehttp& listen(unsigned port, [const std::string&/std::string&& host])
+#### cue::http::cuehttp& listen(unsigned port, [string host])
 
 监听端口，此接口为阻塞接口，host为可选的。
 
@@ -329,7 +335,7 @@ cuehttp主体程序，用于注册中间件、启停HTTP服务。
 
 ### cue::http::server
 
-#### cue::http::server& listen(unsigned port, [const std::string&/std::string&& host])
+#### cue::http::server& listen(unsigned port, [string host])
 
 监听端口，此接口为阻塞接口，host为可选的。
 
@@ -476,19 +482,19 @@ sid=hosdghtsdvojoj
 
 设置响应的status。
 
-#### void redirect(const std::string&/std::string&& url)
+#### void redirect(string url)
 
 重定向到对应url，默认status为302，若修改默认的302则在redirect前调用status。
 
-#### void message(const std::string&/std::string&& message)
+#### void message(string message)
 
 设置响应的信息，对应status。
 
-#### void set(const std::string&/std::string&& field, const std::string&/std::string&& value)
+#### void set(string field, string value)
 
 向响应中添加header。
 
-#### void set(const std::map<std::string, std::string>&/std::map<std::string, std::string>&& headers)
+#### void set(map<std::string, std::string> headers)
 
 向响应中添加一组header。
 
@@ -496,7 +502,7 @@ sid=hosdghtsdvojoj
 
 将响应中对应field的header删除。
 
-#### void type(const std::string&/std::string&& content_type)
+#### void type(string content_type)
 
 设置响应体的类型。
 
@@ -512,7 +518,7 @@ sid=hosdghtsdvojoj
 
 响应中是否已经设置body。
 
-#### void body(const std::string&/std::string&& body)
+#### void body(string body)
 
 设置响应体。
 
@@ -636,7 +642,7 @@ sid=hosdghtsdvojoj
 
 设置响应的status。
 
-#### void message(const std::string&/std::string&& message)
+#### void message(string message)
 
 设置响应的信息，对应status。
 
@@ -648,11 +654,11 @@ sid=hosdghtsdvojoj
 
 获取响应中某个header，不存在返回空。
 
-#### void set(const std::string&/std::string&& field, const std::string&/std::string&& value)
+#### void set(string field, string value)
 
 向响应中添加header。
 
-#### void set(const std::map<std::string, std::string>&/std::map<std::string, std::string>&& headers)
+#### void set(map<std::string, std::string> headers)
 
 向响应中添加一组header。
 
@@ -660,11 +666,11 @@ sid=hosdghtsdvojoj
 
 将响应中对应field的header删除。
 
-#### void redirect(const std::string&/std::string&& url)
+#### void redirect(string url)
 
 重定向到对应url，默认status为302，若修改默认的302则在redirect前调用status。
 
-#### void type(const std::string&/std::string&& content_type)
+#### void type(string content_type)
 
 设置响应体的类型。
 
@@ -676,7 +682,7 @@ sid=hosdghtsdvojoj
 
 响应中是否已经设置body。
 
-#### void body(const std::string&/std::string&& body)
+#### void body(string body)
 
 设置响应体，`std::string`类型。
 
@@ -694,19 +700,19 @@ response.body() << "hello cuehttp";
 
 ### cue::http::websocket
 
-#### void on_open(const std::function<void()>&/std::function<void()>&& func)
+#### void on_open(std::function<void()> func)
 
 设置WebSocket连接建立回调。
 
-#### void on_close(const std::function<void()>&/std::function<void()>&& func)
+#### void on_close(std::function<void()> func)
 
 设置WebSocket连接关闭回调。
 
-#### void on_message(const std::function\<void(std::string&&)>&/std::function\<void(std::string&&)>&& func)
+#### void on_message(std::function\<void(std::string&&)> func)
 
 设置WebSocket连接消息回调。
 
-#### void send(const std::string&/std::string&& msg, [ws_send::options options])
+#### void send(string msg, [ws_send::options options])
 
 向客户端发送消息。options同[options](#void broadcast(const std::string& msg, [ws_send::options options]))。
 
@@ -720,7 +726,7 @@ response.body() << "hello cuehttp";
 
 获取请求中携带的cookie的值，无则返回空。
 
-#### void set(const std::string&/std::string&& name, const std::string&/std::string&& value, [const cookie::options&/cookie::options&& options])
+#### void set(string name, string value, [cookie::options options])
 
 添加响应的Set-Cookie头，每调用一次添加一个。name/value为空则cookie无效。
 
@@ -743,15 +749,15 @@ response.body() << "hello cuehttp";
 
 获取cookie的值，无则返回空。
 
-#### void set(const std::string&/std::string&& name, const std::string&/std::string&& value, [const cookie::options&/cookie::options&& options])
+#### void set(string name, string value, [cookie::options options])
 
-设置cookie。options同[options](#set(name, value, [options]))。
+设置cookie。options同[options](#void set(string name, string value, [cookie::options options]))。
 
 #### const std::string& name() const
 
 获取cookie的键，无则返回空。
 
-#### void name(const std::string&/std::string&& name)
+#### void name(string name)
 
 设置cookie的键。
 
@@ -759,7 +765,7 @@ response.body() << "hello cuehttp";
 
 获取cookie的值，无则返回空。
 
-#### void value(const std::string&/std::string&& value)
+#### void value(string value)
 
 设置cookie的值。
 
@@ -775,7 +781,7 @@ response.body() << "hello cuehttp";
 
 获取cookie过期日期，无则返回空。
 
-#### void expires(const std::string&/std::string&& date)
+#### void expires(string date)
 
 设置cookie过期日期。
 
@@ -783,7 +789,7 @@ response.body() << "hello cuehttp";
 
 获取cookie允许的路径，默认返回"/"。
 
-#### void path(const std::string&/std::string&& path)
+#### void path(string path)
 
 设置cookie允许的路径。
 
@@ -791,7 +797,7 @@ response.body() << "hello cuehttp";
 
 获取cookie允许的域名。
 
-#### void domain(const std::string&/std::string&& domain)
+#### void domain(string domain)
 
 设置cookie允许的域名。
 
@@ -855,11 +861,11 @@ int main(int argc, char** argv) {
 
 #### API
 
-##### router([const std::string&/std::string&& prefix])
+##### router([string prefix])
 
 创建router，可选prefix，默认prefix为空。
 
-##### router& prefix(const std::string&/std::string&& prefix)
+##### router& prefix(string prefix)
 
 设置prefix。
 
@@ -998,7 +1004,7 @@ route.get(
     [](context& ctx) { std::cout << "after get" << std::endl; });
 ```
 
-##### router& redirect(const std::string& path, const std::string&/std::string&& destination, [unsigned status])
+##### router& redirect(const std::string& path, string destination, [unsigned status])
 
 重定向接口，将path重定向到destination。默认status为301。
 
@@ -1147,7 +1153,7 @@ int main(int argc, char** argv) {
 
 #### API
 
-##### void send_file(context& ctx, const std::string&/std::string && path, [const send::options&/send::options&& options])
+##### void send_file(context& ctx, string path, [send::options options])
 
 传入HTTP会话context对象，需要发送的文件或目录。options为可选的，当options不使用时path需要配置文件全路径。传递options时，path可以为文件或目录。
 
@@ -1185,7 +1191,7 @@ int main(int argc, char** argv) {
 
 #### API
 
-##### std::function<void(context&, std::function<void()>)> use_static(const std::string&/std::string&& root, [const static_file::options&/static_file::options&& options])
+##### std::function<void(context&, std::function<void()>)> use_static(string root, [static_file::options options])
 
 生成静态文件访问中间件，root为指定目录，静态文件访问的根目录，options为相关配置(可选)。
 
