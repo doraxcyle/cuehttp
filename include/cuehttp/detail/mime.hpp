@@ -29,7 +29,7 @@ namespace cue {
 namespace http {
 namespace detail {
 
-inline static const std::string& get_mime(const std::string& extension) {
+inline static const std::string& get_mime(const std::string& extension) noexcept {
     static const std::unordered_map<std::string, std::string> mime_types{
         {".323", "text/h323"},
         {".3gp", "video/3gpp"},

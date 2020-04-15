@@ -38,7 +38,7 @@ struct options final {
     bool hidden{false};
     std::string index;
     std::vector<std::string> extensions;
-    std::size_t chunked_threshold{5 * 1024 * 1024};
+    std::uint64_t chunked_threshold{5 * 1024 * 1024};
     bool cross_domain{false};
 };
 
@@ -83,10 +83,12 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
             return;
         }
 
-        const auto file_begin = file.tellg();
         file.seekg(0, std::ios_base::end);
         const auto file_size = file.tellg();
-        file.seekg(file_begin);
+        if (file_size == -1) {
+            return;
+        }
+        file.seekg(std::ios_base::beg);
 
         if (options.cross_domain) {
             ctx.set("Access-Control-Allow-Origin", "*");
@@ -97,7 +99,7 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
             ctx.type(get_mime(real_path.extension().string()));
         }
         ctx.status(200);
-        if (file_size > options.chunked_threshold) {
+        if (static_cast<std::uint64_t>(file_size) > options.chunked_threshold) {
             ctx.set("Transfer-Encoding", "chunked");
         } else {
             ctx.length(file_size);

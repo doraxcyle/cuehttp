@@ -138,7 +138,7 @@ struct utils final : safe_noncopyable {
         return method_string;
     }
 
-    inline static bool iequals(const std::string& lhs, const std::string& rhs) {
+    inline static bool iequals(const std::string& lhs, const std::string& rhs) noexcept {
         return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
                           [](char l, char r) { return std::tolower(l) == std::tolower(r); });
     }
@@ -416,7 +416,7 @@ struct utils final : safe_noncopyable {
     }
 
     inline static std::uint32_t random_uint32() {
-        std::mt19937 generator{static_cast<unsigned long>(std::chrono::system_clock::now().time_since_epoch().count())};
+        std::mt19937 generator{static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
         return generator();
     }
 };

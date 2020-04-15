@@ -36,11 +36,11 @@ public:
         : cookies_{cookies}, reply_handler_{std::move(handler)} {
     }
 
-    void version_major(unsigned version) {
+    void version_major(unsigned version) noexcept {
         version_major_ = version;
     }
 
-    void version_minor(unsigned version) {
+    void version_minor(unsigned version) noexcept {
         version_minor_ = version;
     }
 
@@ -48,7 +48,7 @@ public:
         return status_;
     }
 
-    void status(unsigned status) noexcept {
+    void status(unsigned status) {
         status_ = status;
         message_ = detail::utils::get_message_for_status(status);
     }
@@ -58,7 +58,7 @@ public:
         message_ = std::forward<Msg>(message);
     }
 
-    bool has(const std::string& field) const {
+    bool has(const std::string& field) const noexcept {
         for (auto it = headers_.begin(); it != headers_.end(); ++it) {
             if (detail::utils::iequals(it->first, field)) {
                 return true;
@@ -67,7 +67,7 @@ public:
         return false;
     }
 
-    const std::string& get(const std::string& field) const {
+    const std::string& get(const std::string& field) const noexcept {
         for (const auto& header : headers_) {
             if (detail::utils::iequals(header.first, field)) {
                 return header.second;
@@ -89,7 +89,7 @@ public:
         headers_.insert(std::make_move_iterator(headers.begin()), std::make_move_iterator(headers.end()));
     }
 
-    void remove(const std::string& field) {
+    void remove(const std::string& field) noexcept {
         auto erase = headers_.end();
         for (auto it = headers_.begin(); it != headers_.end(); ++it) {
             if (detail::utils::iequals(it->first, field)) {
@@ -128,7 +128,7 @@ public:
         set("Content-type", std::forward<ContentType>(content_type));
     }
 
-    void length(long long content_length) noexcept {
+    void length(std::uint64_t content_length) noexcept {
         content_length_ = content_length;
     }
 
@@ -156,7 +156,7 @@ public:
         return *stream_;
     }
 
-    void reset() noexcept {
+    void reset() {
         headers_.clear();
         status_ = 404;
         message_ = "Not Found";
@@ -175,7 +175,7 @@ public:
 private:
     friend std::ostream& operator<<(std::ostream& os, const response& response);
 
-    bool chunked() const {
+    bool chunked() const noexcept {
         return detail::utils::iequals(get("Transfer-Encoding"), "chunked");
     }
 
@@ -220,7 +220,7 @@ private:
     unsigned status_{404};
     std::string message_{"Not Found"};
     bool keepalive_{false};
-    long long content_length_{0};
+    std::uint64_t content_length_{0};
     cookies& cookies_;
     std::string body_;
     bool valid_{true};

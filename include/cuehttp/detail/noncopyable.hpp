@@ -27,7 +27,7 @@ namespace detail {
 template <unsigned U>
 class noncopyable_ {
 protected:
-    noncopyable_() = default;
+    noncopyable_() noexcept = default;
     ~noncopyable_() = default;
 
     noncopyable_(const noncopyable_&) = delete;

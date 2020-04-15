@@ -36,7 +36,7 @@ class context final : safe_noncopyable {
 public:
     context(detail::reply_handler handler, bool https, detail::ws_send_handler ws_send_handler) noexcept
         : response_{cookies_, std::move(handler)},
-          request_{https, cookies_, response_},
+          request_{https, cookies_},
           ws_send_handler_{std::move(ws_send_handler)} {
     }
 
@@ -58,7 +58,7 @@ public:
         return request_.headers();
     }
 
-    const std::string& get(const std::string& field) const {
+    const std::string& get(const std::string& field) const noexcept {
         return request_.get(field);
     }
 
@@ -123,7 +123,7 @@ public:
         response_.set(std::forward<Headers>(headers));
     }
 
-    void remove(const std::string& field) {
+    void remove(const std::string& field) noexcept {
         response_.remove(field);
     }
 
@@ -132,11 +132,11 @@ public:
         response_.type(std::forward<ContentType>(content_type));
     }
 
-    void length(long long content_length) noexcept {
+    void length(std::uint64_t content_length) noexcept {
         response_.length(content_length);
     }
 
-    class cookies& cookies() {
+    class cookies& cookies() noexcept {
         return cookies_;
     }
 
@@ -144,7 +144,7 @@ public:
         return !!session_;
     }
 
-    class session& session() noexcept {
+    class session& session() {
         assert(session_);
         return *session_;
     }
@@ -171,7 +171,7 @@ public:
         return response_.body();
     }
 
-    void reset() noexcept {
+    void reset() {
         request_.reset();
         response_.reset();
         cookies_.reset();

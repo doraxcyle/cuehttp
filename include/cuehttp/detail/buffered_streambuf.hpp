@@ -32,12 +32,12 @@ namespace detail {
 template <std::size_t BUFFER_SIZE = 1024 * 1024>
 class buffered_streambuf : public std::streambuf, safe_noncopyable {
 public:
-    explicit buffered_streambuf(std::ios::openmode mode) : mode_{mode} {
+    explicit buffered_streambuf(std::ios::openmode mode) noexcept : mode_{mode} {
         setp(buffer_.begin(), buffer_.end());
         setg(buffer_.begin(), buffer_.begin(), buffer_.begin());
     }
 
-    virtual ~buffered_streambuf() noexcept {
+    virtual ~buffered_streambuf() {
         sync();
     }
 

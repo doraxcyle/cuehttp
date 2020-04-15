@@ -43,13 +43,13 @@ public:
         }
     }
 
-    static engines& default_engines() {
+    static engines& default_engines() noexcept {
         static engines engines{std::thread::hardware_concurrency()};
         return engines;
     }
 
-    boost::asio::io_service& get() {
-        int index = {index_++};
+    boost::asio::io_service& get() noexcept {
+        std::size_t index{index_++};
         if (index == io_contexts_.size()) {
             index = index_ = 0;
         }
@@ -79,7 +79,7 @@ private:
     std::vector<std::shared_ptr<boost::asio::io_service>> io_contexts_;
     std::vector<std::shared_ptr<boost::asio::io_service::work>> workers_;
     std::vector<std::thread> run_threads_;
-    std::atomic_int index_{0};
+    std::atomic_size_t index_{0};
 };
 
 } // namespace detail

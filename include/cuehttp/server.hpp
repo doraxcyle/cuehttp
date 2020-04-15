@@ -46,7 +46,7 @@ public:
     explicit base_server(std::function<void(context&)> handler) noexcept : handler_{std::move(handler)} {
     }
 
-    virtual ~base_server() noexcept = default;
+    virtual ~base_server() = default;
 
     base_server(base_server&& rhs) noexcept {
         swap(rhs);
@@ -149,7 +149,7 @@ class server<detail::https_socket> final : public base_server<detail::https_sock
                                            safe_noncopyable {
 public:
     server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
-        : ssl_context_{boost::asio::ssl::context::sslv23}, base_server{std::move(handler)} {
+        : base_server{std::move(handler)}, ssl_context_{boost::asio::ssl::context::sslv23} {
         ssl_context_.use_certificate_chain_file(cert);
         ssl_context_.use_private_key_file(key, boost::asio::ssl::context::pem);
     }
@@ -196,7 +196,7 @@ using http_t = server<detail::http_socket>;
 
 struct http final : safe_noncopyable {
     template <typename... Args>
-    inline static http_t create_server(Args&&... args) {
+    inline static http_t create_server(Args&&... args) noexcept {
         return http_t{std::forward<Args>(args)...};
     }
 };
@@ -206,7 +206,7 @@ using https_t = server<detail::https_socket>;
 
 struct https final : safe_noncopyable {
     template <typename... Args>
-    inline static https_t create_server(Args&&... args) {
+    inline static https_t create_server(Args&&... args) noexcept {
         return https_t{std::forward<Args>(args)...};
     }
 };

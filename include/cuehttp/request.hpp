@@ -35,8 +35,8 @@ constexpr unsigned HTTP_REQUEST_BUFFER_SIZE{2048};
 
 class request final : safe_noncopyable {
 public:
-    request(bool https, cookies& cookies, response& response) noexcept
-        : https_{https}, cookies_{cookies}, response_{response}, parser_{new http_parser} {
+    request(bool https, cookies& cookies) noexcept
+        : https_{https}, parser_{new http_parser}, cookies_{cookies} {
         init_parser();
     }
 
@@ -52,7 +52,7 @@ public:
         return version_minor_;
     }
 
-    const std::string& get(const std::string& field) const {
+    const std::string& get(const std::string& field) const noexcept {
         for (const auto& header : headers_) {
             if (detail::utils::iequals(header.first, field)) {
                 return header.second;
@@ -113,7 +113,7 @@ public:
         return charset_;
     }
 
-    long long length() const noexcept {
+    std::uint64_t length() const noexcept {
         return content_length_;
     }
 
@@ -129,7 +129,7 @@ public:
         return buffer_;
     }
 
-    int parse(std::size_t size) noexcept {
+    std::size_t parse(std::size_t size) noexcept {
         return http_parser_execute(parser_, &parser_settings_, buffer_.data(), size);
     }
 
@@ -159,7 +159,7 @@ public:
         method_.clear();
         content_type_.clear();
         charset_.clear();
-        content_length_ = -1;
+        content_length_ = 0;
         keepalive_ = false;
         websocket_ = false;
         cookies_.reset();
@@ -292,12 +292,12 @@ private:
     }
 
     static int on_chunk_header(http_parser* parser) {
-        request* self{static_cast<request*>(parser->data)};
+        // request* self{static_cast<request*>(parser->data)};
         return 0;
     }
 
     static int on_chunk_complete(http_parser* parser) {
-        request* self{static_cast<request*>(parser->data)};
+        // request* self{static_cast<request*>(parser->data)};
         return 0;
     }
 
@@ -329,7 +329,6 @@ private:
 
     std::array<char, HTTP_REQUEST_BUFFER_SIZE> buffer_;
     bool https_{false};
-    response& response_;
     http_parser* parser_;
     http_parser_settings parser_settings_;
     bool has_more_requests_{true};
@@ -347,7 +346,7 @@ private:
     std::string method_;
     std::string content_type_;
     std::string charset_;
-    long long content_length_{-1};
+    std::uint64_t content_length_{0};
     bool keepalive_{false};
     bool websocket_{false};
     cookies& cookies_;

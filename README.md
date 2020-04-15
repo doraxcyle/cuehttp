@@ -506,7 +506,7 @@ sid=hosdghtsdvojoj
 
 设置响应体的类型。
 
-#### void length(long long content_length)
+#### void length(std::uint64_t content_length)
 
 设置响应体的长度。若为chunked类型响应，则此项不设置。
 
@@ -624,7 +624,7 @@ sid=hosdghtsdvojoj
 
 获取请求content的charset。
 
-#### long long length() const
+#### std::uint64_t length() const
 
 获取请求的content length。
 
@@ -674,7 +674,7 @@ sid=hosdghtsdvojoj
 
 设置响应体的类型。
 
-#### void length(long long content_length)
+#### void length(std::uint64_t content_length)
 
 设置响应体的长度。若为chunked类型响应，则此项不设置。
 
@@ -1094,7 +1094,7 @@ int main(int argc, char** argv) {
 
 传入key，返回对应session的值。
 
-###### std::function<void(const std::string&, const std::string&, long)> set
+###### std::function<void(const std::string&, const std::string&, std::uint32_t)> set
 
 传入key、value、过期时间(单位秒)来设置session。
 

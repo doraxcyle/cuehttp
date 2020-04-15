@@ -30,13 +30,13 @@ namespace detail {
 
 class body_streambuf final : public buffered_streambuf<>, safe_noncopyable {
 public:
-    body_streambuf(bool chunked, reply_handler handler, std::ios::openmode mode)
-        : chunked_{chunked}, handler_{std::move(handler)}, mode_{mode}, buffered_streambuf{mode} {
+    body_streambuf(bool chunked, reply_handler handler, std::ios::openmode mode) noexcept
+        : buffered_streambuf{mode}, chunked_{chunked}, handler_{std::move(handler)}, openmode_{mode} {
         assert(handler_);
     }
 
-    ~body_streambuf() {
-        if (mode_ & std::ios::out) {
+    ~body_streambuf() override {
+        if (openmode_ & std::ios::out) {
             sync();
             if (chunked_) {
                 static const std::string chunked_end{"0\r\n\r\n"};
@@ -69,13 +69,13 @@ public:
 private:
     bool chunked_{true};
     reply_handler handler_;
-    std::ios::openmode mode_;
+    std::ios::openmode openmode_;
     std::string buffer_;
 };
 
 class body_ios : public virtual std::ios {
 public:
-    body_ios(bool chunked, reply_handler handler, std::ios::openmode mode)
+    body_ios(bool chunked, reply_handler handler, std::ios::openmode mode) noexcept
         : buffer_{chunked, std::move(handler), mode} {
         init(&buffer_);
     }
@@ -90,7 +90,7 @@ protected:
 
 class body_ostream final : public body_ios, public std::ostream, safe_noncopyable {
 public:
-    body_ostream(bool chunked, reply_handler handler)
+    body_ostream(bool chunked, reply_handler handler) noexcept
         : body_ios{chunked, std::move(handler), std::ios::out}, std::ostream{&buffer_} {
     }
 };

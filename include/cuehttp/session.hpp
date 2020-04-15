@@ -35,7 +35,7 @@ class session final {
 public:
     struct store_t final {
         std::function<std::string(const std::string&)> get;
-        std::function<void(const std::string&, const std::string&, long)> set;
+        std::function<void(const std::string&, const std::string&, std::uint32_t)> set;
         std::function<void(const std::string&)> destroy;
 
         explicit operator bool() const noexcept {
@@ -64,7 +64,7 @@ public:
         std::string prefix;
     };
 
-    session() noexcept = delete;
+    session() = delete;
 
     template <typename Options>
     session(Options&& options, context& context, cookies& cookies) noexcept
@@ -85,7 +85,7 @@ public:
         datas_[std::forward<Key>(key)] = std::forward<Value>(value);
     }
 
-    const std::string& get(const std::string& key) const {
+    const std::string& get(const std::string& key) const noexcept {
         const auto it = datas_.find(key);
         if (it != datas_.end()) {
             return it->second;
@@ -208,8 +208,8 @@ private:
         return to_json().dump();
     }
 
-    context& context_;
     options options_;
+    context& context_;
     cookies& cookies_;
     std::string external_key_;
     std::map<std::string, std::string> datas_;

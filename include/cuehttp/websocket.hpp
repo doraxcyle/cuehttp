@@ -71,12 +71,8 @@ public:
 
     template <typename Msg>
     void send(Msg&& msg, ws_send::options options = {}) {
-        detail::ws_frame frame;
-        frame.fin = options.fin;
-        frame.mask = options.mask;
-        frame.opcode = options.binary ? detail::ws_opcode::binary : detail::ws_opcode::text;
-        frame.payload = std::forward<Msg>(msg);
-        send_handler_(std::move(frame));
+        send_handler_({options.fin, options.binary ? detail::ws_opcode::binary : detail::ws_opcode::text, options.mask,
+                       std::forward<Msg>(msg)});
     }
 
     void close() {
@@ -97,17 +93,15 @@ public:
                 handler();
             }
             break;
-        case detail::ws_event::msg: {
+        case detail::ws_event::msg:
             if (!msg_handlers_.empty()) {
                 const auto last_index = msg_handlers_.size() - 1;
                 for (std::size_t i{0}; i < last_index; ++i) {
                     msg_handlers_[i](std::string{msg});
                 }
-                const auto& last_handler = msg_handlers_[last_index];
                 msg_handlers_[last_index](std::move(msg));
             }
             break;
-        }
         default:
             break;
         }

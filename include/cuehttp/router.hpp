@@ -340,7 +340,7 @@ private:
 
     void compose(std::string&& method, const std::string& path,
                  std::vector<std::function<void(context&, std::function<void()>)>>&& handlers) {
-        const auto handler = [this, handlers = std::move(handlers)](context& ctx) {
+        const auto handler = [handlers = std::move(handlers)](context& ctx) {
             if (handlers.empty()) {
                 return;
             }
@@ -356,7 +356,7 @@ private:
 
             handlers[0](ctx, next);
         };
-        handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)), std::move(handler));
+        handlers_.emplace(method + "+" + prefix_ + detail::utils::to_lower(path), std::move(handler));
     }
 
     std::function<void(context&)> make_routes() const noexcept {

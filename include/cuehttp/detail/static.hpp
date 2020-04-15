@@ -41,7 +41,7 @@ struct options final {
 namespace detail {
 
 template <typename Root, typename Options>
-inline auto use_static(Root&& root, Options&& options) {
+inline auto use_static(Root&& root, Options&& options) noexcept {
     return [root = std::forward<Root>(root), options = std::forward<Options>(options)](context& ctx,
                                                                                        std::function<void()> next) {
         static const auto handler = [](context& ctx, std::string&& root, const static_file::options& static_options) {
@@ -71,7 +71,7 @@ inline auto use_static(Root&& root, Options&& options) {
 }
 
 template <typename Root>
-inline auto use_static(Root&& root) {
+inline auto use_static(Root&& root) noexcept {
     return use_static(std::forward<Root>(root), static_file::options{});
 }
 
