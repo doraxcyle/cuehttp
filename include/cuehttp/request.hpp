@@ -44,12 +44,12 @@ public:
         delete parser_;
     }
 
-    unsigned version_major() const noexcept {
-        return version_major_;
+    unsigned major_version() const noexcept {
+        return major_version_;
     }
 
-    unsigned version_minor() const noexcept {
-        return version_minor_;
+    unsigned minor_version() const noexcept {
+        return minor_version_;
     }
 
     const std::string& get(const std::string& field) const noexcept {
@@ -225,8 +225,8 @@ private:
         self->value_.clear();
 
         // version
-        self->version_major_ = parser->http_major;
-        self->version_minor_ = parser->http_minor;
+        self->major_version_ = parser->http_major;
+        self->minor_version_ = parser->http_minor;
 
         // method
         self->method_ = detail::utils::to_method_string(parser->method);
@@ -253,7 +253,7 @@ private:
         }
 
         // keepalive/websocket
-        if (self->version_minor_ == 1) {
+        if (self->minor_version_ == 1) {
             const auto& connection = self->get("Connection");
             if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
                 self->keepalive_ = true;
@@ -332,8 +332,8 @@ private:
     http_parser* parser_;
     http_parser_settings parser_settings_;
     bool has_more_requests_{true};
-    unsigned version_major_{1};
-    unsigned version_minor_{1};
+    unsigned major_version_{1};
+    unsigned minor_version_{1};
     std::string host_;
     std::string hostname_;
     std::string url_;

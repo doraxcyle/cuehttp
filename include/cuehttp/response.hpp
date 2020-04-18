@@ -36,12 +36,12 @@ public:
         : cookies_{cookies}, reply_handler_{std::move(handler)} {
     }
 
-    void version_major(unsigned version) noexcept {
-        version_major_ = version;
+    void major_version(unsigned version) noexcept {
+        major_version_ = version;
     }
 
-    void version_minor(unsigned version) noexcept {
-        version_minor_ = version;
+    void minor_version(unsigned version) noexcept {
+        minor_version_ = version;
     }
 
     unsigned status() const noexcept {
@@ -115,7 +115,7 @@ public:
     }
 
     void keepalive(bool keepalive) {
-        if (keepalive && version_major_ == 1) {
+        if (keepalive && major_version_ == 1) {
             keepalive_ = true;
         } else {
             keepalive_ = false;
@@ -128,12 +128,20 @@ public:
         set("Content-type", std::forward<ContentType>(content_type));
     }
 
+    std::uint64_t length() const noexcept {
+        return content_length_;
+    }
+
     void length(std::uint64_t content_length) noexcept {
         content_length_ = content_length;
     }
 
     bool has_body() const noexcept {
         return !body_.empty();
+    }
+
+    std::string dump_body() const {
+        return body_;
     }
 
     template <typename Body>
@@ -181,7 +189,7 @@ private:
 
     std::string header_to_string() {
         std::ostringstream os;
-        os << "HTTP/" << version_major_ << '.' << version_minor_ << ' ' << status_ << ' ' << message_ << "\r\n";
+        os << "HTTP/" << major_version_ << '.' << minor_version_ << ' ' << status_ << ' ' << message_ << "\r\n";
 
         // headers
         os << "Server: cuehttp\r\n";
@@ -215,8 +223,8 @@ private:
     }
 
     std::map<std::string, std::string> headers_;
-    unsigned version_major_{1};
-    unsigned version_minor_{1};
+    unsigned major_version_{1};
+    unsigned minor_version_{1};
     unsigned status_{404};
     std::string message_{"Not Found"};
     bool keepalive_{false};
@@ -229,7 +237,7 @@ private:
 };
 
 inline std::ostream& operator<<(std::ostream& os, const response& response) {
-    os << "HTTP/" << response.version_major_ << '.' << response.version_minor_ << ' ' << response.status_ << ' '
+    os << "HTTP/" << response.major_version_ << '.' << response.minor_version_ << ' ' << response.status_ << ' '
        << response.message_ << "\r\n";
 
     // headers

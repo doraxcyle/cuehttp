@@ -26,6 +26,7 @@
 #include <boost/filesystem.hpp>
 
 #include "cuehttp/context.hpp"
+#include "cuehttp/compress.hpp"
 #include "cuehttp/detail/mime.hpp"
 
 namespace cue {
@@ -40,6 +41,10 @@ struct options final {
     std::vector<std::string> extensions;
     std::uint64_t chunked_threshold{5 * 1024 * 1024};
     bool cross_domain{false};
+#ifdef ENABLE_GZIP
+    bool gzip{true};
+    std::uint64_t gzip_threshold{2048};
+#endif // ENABLE_GZIP
 };
 
 } // namespace send
@@ -84,12 +89,24 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
         }
 
         file.seekg(0, std::ios_base::end);
-        const auto file_size = file.tellg();
+        auto file_size = file.tellg();
         if (file_size == -1) {
             return;
         }
         file.seekg(std::ios_base::beg);
-
+#ifdef ENABLE_GZIP
+        std::string data;
+        if (static_cast<std::uint64_t>(file_size) >= options.gzip_threshold && options.gzip) {
+            std::ostringstream tmp;
+            tmp << file.rdbuf();
+            std::string dst;
+            if (compress::deflate(tmp.str(), dst)) {
+                data = std::move(dst);
+                ctx.set("Content-Encoding", "gzip");
+            }
+            file_size = data.size();
+        }
+#endif // ENABLE_GZIP
         if (options.cross_domain) {
             ctx.set("Access-Control-Allow-Origin", "*");
             ctx.set("Access-Control-Allow-Headers", "X-Requested-With");
@@ -99,12 +116,20 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
             ctx.type(get_mime(real_path.extension().string()));
         }
         ctx.status(200);
-        if (static_cast<std::uint64_t>(file_size) > options.chunked_threshold) {
+        if (static_cast<std::uint64_t>(file_size) >= options.chunked_threshold) {
             ctx.set("Transfer-Encoding", "chunked");
         } else {
             ctx.length(file_size);
         }
+#ifdef ENABLE_GZIP
+        if (data.empty()) {
+            ctx.body() << file.rdbuf();
+        } else {
+            ctx.body() << data;
+        }
+#else
         ctx.body() << file.rdbuf();
+#endif // ENABLE_GZIP
     } catch (...) {
         return;
     }

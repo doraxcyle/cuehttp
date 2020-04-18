@@ -30,6 +30,7 @@
 #include "cuehttp/websocket.hpp"
 #include "cuehttp/router.hpp"
 #include "cuehttp/use_session.hpp"
+#include "cuehttp/compress.hpp"
 #include "cuehttp/send.hpp"
 #include "cuehttp/static.hpp"
 

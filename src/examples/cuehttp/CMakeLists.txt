@@ -10,9 +10,19 @@ include_directories(${PROJECT_SOURCE_DIR}/../../../include)
 find_package(Boost COMPONENTS system REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
+option(ENABLE_GZIP "enable gzip" ON)
+if (ENABLE_GZIP)
+    message("-- enable gzip")
+    find_package(ZLIB REQUIRED)
+    add_definitions(-DENABLE_GZIP)
+endif ()
+
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+if (ENABLE_GZIP)
+    target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
+endif ()
 
 if (WIN32)
     target_link_libraries(${PROJECT_NAME} ws2_32 wsock32)

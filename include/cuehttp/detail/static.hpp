@@ -34,6 +34,10 @@ struct options final {
     std::string index;
     std::vector<std::string> extensions;
     bool cross_domain{false};
+#ifdef ENABLE_GZIP
+    bool gzip{true};
+    std::uint64_t gzip_threshold{2048};
+#endif // ENABLE_GZIP
 };
 
 } // namespace static_file
@@ -54,6 +58,10 @@ inline auto use_static(Root&& root, Options&& options) noexcept {
             send_options.extensions = std::move(static_options.extensions);
             send_options.hidden = static_options.hidden;
             send_options.cross_domain = static_options.cross_domain;
+#ifdef ENABLE_GZIP
+            send_options.gzip = static_options.gzip;
+            send_options.gzip_threshold = static_options.gzip_threshold;
+#endif // ENABLE_GZIP
             send_file(ctx, ctx.path(), std::move(send_options));
         };
 
