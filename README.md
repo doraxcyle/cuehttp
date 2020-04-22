@@ -1118,6 +1118,45 @@ int main(int argc, char** argv) {
 
 删除对应HTTP会话的key。
 
+### gzip
+
+使用gzip压缩HTTP body。`使用gzip需要开启ENABLE_GZIP宏，并依赖zlib。`
+
+#### 示例
+
+```cpp
+#include <cuehttp.hpp>
+
+using namespace cue::http;
+
+int main(int argc, char** argv) {
+    cuehttp app;
+    compress::options options;
+    app.use(use_compress(std::move(options)));
+    app.use([](context& ctx) {
+        ctx.type("text/html");
+        ctx.body(R"(<h1>Hello cuehttp!</h1>)");
+        ctx.status(200);
+    });
+    app.listen(10000).run();
+
+    return 0;
+}
+```
+
+#### API
+
+##### compress::options
+
+| compress::options | 类型          | 描述                               | 默认值 |
+| ----------------- | ------------- | ---------------------------------- | ------ |
+| threshold         | std::uint64_t | 配置body使用gzip压缩的临界字节大小 | 2048   |
+| level             | int           | 压缩等级                           | 8      |
+
+#####  bool compress::deflate(const std::string& src, std::string& dst, int level = 8)
+
+内容压缩接口。
+
 ### send_file
 
 cuehttp的静态文件发送中间件。为cuehttp提供离线文件请求支持。
@@ -1167,6 +1206,8 @@ int main(int argc, char** argv) {
 | extensions        | std::vector\<std::string> | 配置目录中的文件访问匹配扩展名，按照内部顺序进行优先匹配     |                    |
 | chunked_threshold | std::size_t                    | 文件发送Transfer-Encoding是否使用chunked，当大于此值时使用chunked，否则不配置chunked | 5,242,880(5MB大小) |
 | cross_domain      | bool                      | 是否允许跨域，允许跨域时添加允许跨域header。<br/>`Access-Control-Allow-Origin: *` `Access-Control-Allow-Headers: X-Requested-With ` <br/>`Access-Control-Allow-Methods: GET,POST,OPTIONS` | false              |
+| threshold | std::uint64_t | 配置body使用gzip压缩的临界字节大小 | 2048 |
+| level | int | 压缩等级 | 8 |
 
 ### static
 
@@ -1204,3 +1245,5 @@ int main(int argc, char** argv) {
 | index                | std::string               | 配置目录访问的默认文件                                       | index.html |
 | extensions           | std::vector\<std::string> | 配置目录中的文件访问匹配扩展名，按照内部顺序进行优先匹配     |            |
 | cross_domain         | bool                      | 是否允许跨域，允许跨域时添加允许跨域header。<br/>`Access-Control-Allow-Origin: *` `Access-Control-Allow-Headers: X-Requested-With ` <br/>`Access-Control-Allow-Methods: GET,POST,OPTIONS` | false      |
+| threshold            | std::uint64_t             | 配置body使用gzip压缩的临界字节大小                           | 2048       |
+| level                | int                       | 压缩等级                                                     | 8          |
