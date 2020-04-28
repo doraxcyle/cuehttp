@@ -202,12 +202,6 @@ private:
 
     static int on_header_field(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        // add header
-        if (!self->field_.empty() && !self->value_.empty()) {
-            self->headers_.emplace(self->field_, self->value_);
-        }
-        self->field_.clear();
-        self->value_.clear();
         self->field_.assign(at, length);
         return 0;
     }
@@ -215,6 +209,12 @@ private:
     static int on_header_value(http_parser* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->value_.assign(at, length);
+        // add header
+        if (!self->field_.empty() && !self->value_.empty()) {
+            self->headers_.emplace(self->field_, self->value_);
+        }
+        self->field_.clear();
+        self->value_.clear();
         return 0;
     }
 

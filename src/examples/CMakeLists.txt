@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
+project(cuehttp_examples)
+
 add_subdirectory(./chunked)
 add_subdirectory(./cookies)
 add_subdirectory(./cuehttp)
