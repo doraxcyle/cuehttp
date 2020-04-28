@@ -42,7 +42,7 @@
 #endif // ENABLE_HTTPS
 
 #include "cuehttp/detail/noncopyable.hpp"
-#include "cuehttp/3rd_party/http_parser.h"
+#include "cuehttp/3rd_party/llhttp.h"
 
 namespace cue {
 namespace http {
@@ -117,19 +117,19 @@ struct utils final : safe_noncopyable {
     inline static std::string to_method_string(unsigned method) noexcept {
         std::string method_string;
         switch (method) {
-        case http_method::HTTP_DELETE:
+        case llhttp_method::HTTP_DELETE:
             method_string = "DELETE";
             break;
-        case http_method::HTTP_GET:
+        case llhttp_method::HTTP_GET:
             method_string = "GET";
             break;
-        case http_method::HTTP_HEAD:
+        case llhttp_method::HTTP_HEAD:
             method_string = "HEAD";
             break;
-        case http_method::HTTP_POST:
+        case llhttp_method::HTTP_POST:
             method_string = "POST";
             break;
-        case http_method::HTTP_PUT:
+        case llhttp_method::HTTP_PUT:
             method_string = "PUT";
             break;
         default:

@@ -90,10 +90,16 @@ protected:
                     return;
                 }
 
-                const auto parsed = context_.req().parse(bytes_transferred);
-                if (parsed != bytes_transferred || context_.req().has_parse_error()) {
-                    reply_error(400);
-                    return;
+                const auto parse_code = context_.req().parse(bytes_transferred);
+                if (parse_code != 0) {
+                    if (parse_code >= 4 && parse_code <= 14) {
+                        reply_error(400);
+                        return;
+                    }
+                    // websocket
+                    if (parse_code == 21) {
+                        context_.req().upgrade();
+                    }
                 }
 
                 if (context_.req().has_more_requests()) {
