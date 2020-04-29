@@ -91,7 +91,6 @@ protected:
                 }
 
                 const auto parse_code = context_.req().parse(bytes_transferred);
-                std::cout << parse_code << std::endl;
                 if (parse_code != 0) {
                     if (parse_code >= 4 && parse_code <= 14) {
                         reply_error(400);
