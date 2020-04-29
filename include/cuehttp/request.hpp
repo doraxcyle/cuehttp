@@ -128,10 +128,6 @@ public:
         return llhttp_execute(&parser_, buffer_.data(), size);
     }
 
-    void upgrade() {
-        llhttp_resume_after_upgrade(&parser_);
-    }
-
     bool has_more_requests() const noexcept {
         return has_more_requests_;
     }

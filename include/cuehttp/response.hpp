@@ -193,6 +193,7 @@ private:
 
         // headers
         os << "Server: cuehttp\r\n";
+        os << "Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n";
         for (const auto& header : headers_) {
             if (chunked() && detail::utils::iequals(header.first, "Content-length")) {
                 continue;
@@ -242,6 +243,7 @@ inline std::ostream& operator<<(std::ostream& os, const response& response) {
 
     // headers
     os << "Server: cuehttp\r\n";
+    os << "Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n";
     for (const auto& header : response.headers_) {
         os << header.first << ": " << header.second << "\r\n";
     }
