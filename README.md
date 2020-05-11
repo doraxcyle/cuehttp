@@ -1131,8 +1131,7 @@ using namespace cue::http;
 
 int main(int argc, char** argv) {
     cuehttp app;
-    compress::options options;
-    app.use(use_compress(std::move(options)));
+    app.use(use_compress());
     app.use([](context& ctx) {
         ctx.type("text/html");
         ctx.body(R"(<h1>Hello cuehttp!</h1>)");
