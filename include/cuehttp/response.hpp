@@ -140,7 +140,7 @@ public:
         return !body_.empty();
     }
 
-    std::string dump_body() const {
+    const std::string& dump_body() const noexcept {
         return body_;
     }
 
@@ -178,6 +178,41 @@ public:
 
     bool valid() const noexcept {
         return valid_;
+    }
+
+    std::string to_string() {
+        std::string str;
+        str.append("HTTP/" + std::to_string(major_version_) + "." + std::to_string(minor_version_) + " " +
+                   std::to_string(status_) + " " + message_ + "\r\n");
+
+        // headers
+        str.append("Server: cuehttp\r\n");
+        str.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
+        for (const auto& header : headers_) {
+            str.append(header.first + ": " + header.second + "\r\n");
+        }
+
+        if (get("Connection").empty() && keepalive_) {
+            str.append("Connection: keep-alive\r\n");
+        }
+
+        // cookies
+        const auto& cookies = cookies_.get();
+        for (const auto& cookie : cookies) {
+            if (cookie.valid()) {
+                str.append("Set-Cookie: " + cookie.to_string() + "\r\n");
+            }
+        }
+
+        if (chunked()) {
+            // chunked
+            str.append("\r\n");
+        } else {
+            str.append("Content-length: " + std::to_string(content_length_) + "\r\n\r\n");
+            str.append(body_);
+        }
+
+        return str;
     }
 
 private:

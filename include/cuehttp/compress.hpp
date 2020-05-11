@@ -52,7 +52,7 @@ inline auto use_compress(Options&& options) noexcept {
             return;
         }
 
-        auto body = ctx.res().dump_body();
+        const auto& body = ctx.res().dump_body();
         std::string dst_body;
         if (!detail::gzip::compress(body, dst_body, options.level)) {
             ctx.status(500);

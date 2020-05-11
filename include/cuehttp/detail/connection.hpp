@@ -91,19 +91,13 @@ protected:
                 }
 
                 const auto parse_code = context_.req().parse(bytes_transferred);
-                if (parse_code != 0) {
-                    if (parse_code >= 4 && parse_code <= 14) {
-                        reply_error(400);
-                        return;
-                    }
-                }
-
-                if (context_.req().has_more_requests()) {
+                if (parse_code == 0) {
+                    handle_and_reply();
+                } else if (parse_code >= 4 && parse_code <= 14) {
+                    reply_error(400);
+                } else {
                     do_read();
-                    return;
                 }
-
-                handle_and_reply();
             });
     }
 
@@ -122,9 +116,9 @@ protected:
     }
 
     void handle() {
-        sync_headers();
         assert(handler_);
         handler_(context_);
+        sync_headers();
     }
 
     void sync_headers() {
@@ -134,9 +128,17 @@ protected:
     }
 
     void reply() {
-        std::ostream os{&buffer_};
-        os << context_.res();
-        do_write();
+        auto response = context_.res().to_string();
+        boost::asio::async_write(
+            socket_, boost::asio::buffer(response.data(), response.size()),
+            [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
+                if (code) {
+                    close();
+                    return;
+                }
+
+                check_connection();
+            });
     }
 
     void do_write() {
@@ -167,7 +169,7 @@ protected:
             context_.websocket().emit(detail::ws_event::open);
             do_read_ws_header();
         } else {
-            if (context_.req().keepalive() && context_.res().keepalive()) {
+            if (context_.res().keepalive()) {
                 context_.reset();
                 do_read();
             }
