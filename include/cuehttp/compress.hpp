@@ -64,6 +64,10 @@ inline auto use_compress(Options&& options) noexcept {
     };
 }
 
+inline auto use_compress() noexcept {
+    return use_compress(compress::options{});
+}
+
 } // namespace http
 } // namespace cue
 

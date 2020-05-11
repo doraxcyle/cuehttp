@@ -105,8 +105,7 @@ int main(int argc, char** argv) {
     app.use([](context& ctx) { std::cout << "4" << std::endl; });
 
 #ifdef ENABLE_GZIP
-    compress::options options;
-    app.use(use_compress(std::move(options)));
+    app.use(use_compress());
 #endif // ENABLE_GZIP
 
     app.listen(10000).run();
