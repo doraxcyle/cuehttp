@@ -91,7 +91,8 @@ protected:
                 }
 
                 const auto parse_code = context_.req().parse(bytes_transferred);
-                if (parse_code == 0) {
+                // code 21 for websocket
+                if (parse_code == 0 || parse_code == 21) {
                     handle_and_reply();
                 } else if (parse_code >= 4 && parse_code <= 14) {
                     reply_error(400);
