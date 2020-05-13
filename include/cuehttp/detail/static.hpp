@@ -62,7 +62,7 @@ inline auto use_static(Root&& root, Options&& options) noexcept {
             send_options.gzip = static_options.gzip;
             send_options.gzip_threshold = static_options.gzip_threshold;
 #endif // ENABLE_GZIP
-            send_file(ctx, ctx.path(), std::move(send_options));
+            send_file(ctx, std::string{ctx.path()}, std::move(send_options));
         };
 
         if (options.delay) {

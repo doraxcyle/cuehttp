@@ -77,11 +77,9 @@ public:
         return *this;
     }
 
-    const std::string& get(const std::string& name) const noexcept {
-        if (name == name_) {
-            return value_;
-        }
-        return detail::global_value::empty_string();
+    std::string_view get(std::string_view name) const noexcept {
+        using namespace std::literals;
+        return name == name_ ? value_ : ""sv;
     }
 
     template <typename... Args>
@@ -89,7 +87,7 @@ public:
         set_impl(std::forward<Args>(args)...);
     }
 
-    const std::string& name() const noexcept {
+    std::string_view name() const noexcept {
         return name_;
     }
 
@@ -98,7 +96,7 @@ public:
         name_ = std::forward<Name>(name);
     }
 
-    const std::string& value() const noexcept {
+    std::string_view value() const noexcept {
         return value_;
     }
 
@@ -115,7 +113,7 @@ public:
         options_.max_age = max_age;
     }
 
-    const std::string& expires() const noexcept {
+    std::string_view expires() const noexcept {
         return options_.expires;
     }
 
@@ -124,7 +122,7 @@ public:
         options_.expires = std::forward<Expires>(expires);
     }
 
-    const std::string& path() const noexcept {
+    std::string_view path() const noexcept {
         return options_.path;
     }
 
@@ -133,7 +131,7 @@ public:
         options_.path = std::forward<Path>(path);
     }
 
-    const std::string& domain() const noexcept {
+    std::string_view domain() const noexcept {
         return options_.domain;
     }
 
@@ -281,7 +279,7 @@ class cookies final : safe_noncopyable {
 public:
     cookies() noexcept = default;
 
-    const std::string& get(const std::string& name) const noexcept {
+    std::string_view get(std::string_view name) const noexcept {
         return cookie_.get(name);
     }
 

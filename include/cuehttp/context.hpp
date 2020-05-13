@@ -58,39 +58,39 @@ public:
         return request_.headers();
     }
 
-    const std::string& get(const std::string& field) const noexcept {
+    std::string_view get(std::string_view field) const noexcept {
         return request_.get(field);
     }
 
-    const std::string& method() const noexcept {
+    std::string_view method() const noexcept {
         return request_.method();
     }
 
-    const std::string& host() const noexcept {
+    std::string_view host() const noexcept {
         return request_.host();
     }
 
-    const std::string& hostname() const noexcept {
+    std::string_view hostname() const noexcept {
         return request_.hostname();
     }
 
-    const std::string& url() const noexcept {
+    std::string_view url() const noexcept {
         return request_.url();
     }
 
-    const std::string& origin() const noexcept {
+    std::string_view origin() const noexcept {
         return request_.origin();
     }
 
-    const std::string& href() const noexcept {
+    std::string_view href() const noexcept {
         return request_.href();
     }
 
-    const std::string& path() const noexcept {
+    std::string_view path() const noexcept {
         return request_.path();
     }
 
-    const std::string& querystring() const noexcept {
+    std::string_view querystring() const noexcept {
         return request_.querystring();
     }
 
@@ -123,7 +123,7 @@ public:
         response_.set(std::forward<Headers>(headers));
     }
 
-    void remove(const std::string& field) noexcept {
+    void remove(std::string_view field) noexcept {
         response_.remove(field);
     }
 

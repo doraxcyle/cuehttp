@@ -34,9 +34,9 @@ class context;
 class session final {
 public:
     struct store_t final {
-        std::function<std::string(const std::string&)> get;
-        std::function<void(const std::string&, const std::string&, std::uint32_t)> set;
-        std::function<void(const std::string&)> destroy;
+        std::function<std::string(std::string_view)> get;
+        std::function<void(std::string_view, std::string_view, std::uint32_t)> set;
+        std::function<void(std::string_view)> destroy;
 
         explicit operator bool() const noexcept {
             return get && set && destroy;
@@ -45,8 +45,8 @@ public:
 
     struct external_key_t final {
         std::function<std::string(context&)> get;
-        std::function<void(context&, const std::string&)> set;
-        std::function<void(context&, const std::string&)> destroy;
+        std::function<void(context&, std::string_view)> set;
+        std::function<void(context&, std::string_view)> destroy;
 
         explicit operator bool() const noexcept {
             return get && set && destroy;
@@ -85,12 +85,13 @@ public:
         datas_[std::forward<Key>(key)] = std::forward<Value>(value);
     }
 
-    const std::string& get(const std::string& key) const noexcept {
+    std::string_view get(const std::string& key) const noexcept {
         const auto it = datas_.find(key);
         if (it != datas_.end()) {
             return it->second;
         }
-        return detail::global_value::empty_string();
+        using namespace std::literals;
+        return ""sv;
     }
 
     void remove() noexcept {
@@ -149,7 +150,7 @@ private:
         if (options_.external_key) {
             external_key_ = options_.external_key.get(context_);
         } else {
-            external_key_ = cookies_.get(options_.key);
+            external_key_ = std::string{cookies_.get(options_.key)};
         }
 
         if (external_key_.empty()) {
@@ -171,12 +172,12 @@ private:
             options_.external_key.destroy(context_, external_key_);
         } else {
             cookie::options options;
-            options.expires = detail::global_value::cookie_expires_date();
+            options.expires = std::string{detail::cookie_expires_date};
             cookies_.set(options_.key, "", std::move(options));
         }
     }
 
-    bool parse(const std::string& json) {
+    bool parse(std::string_view json) {
         if (json.empty()) {
             return false;
         }

@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         if (view_str.empty()) {
             ctx.session().set("view", std::to_string(view));
         } else {
-            view = std::stoi(view_str);
+            view = std::stoi(std::string{view_str});
             ctx.session().set("view", std::to_string(view + 1));
         }
         ctx.type("text/html");
@@ -45,11 +45,11 @@ int main(int argc, char** argv) {
     //     std::cout << "external_key.get" << std::endl;
     //     return ctx.get("User-Token");
     // };
-    // session_opt.external_key.set = [](context& ctx, const std::string& value) {
+    // session_opt.external_key.set = [](context& ctx, std::string_view value) {
     //     std::cout << "external_key.set" << std::endl;
     //     return ctx.set("User-Token", value);
     // };
-    // session_opt.external_key.destroy = [](context& ctx, const std::string& value) {
+    // session_opt.external_key.destroy = [](context& ctx, std::string_view value) {
     //     std::cout << "external_key.destroy" << std::endl;
     //     return ctx.remove("User-Token");
     // };

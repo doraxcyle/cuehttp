@@ -47,64 +47,77 @@ public:
         return minor_version_;
     }
 
-    const std::string& get(const std::string& field) const noexcept {
+    std::string_view get(std::string_view field) const noexcept {
         for (const auto& header : headers_) {
             if (detail::utils::iequals(header.first, field)) {
                 return header.second;
             }
         }
-        return detail::global_value::empty_string();
+        using namespace std::literals;
+        return ""sv;
     }
 
     const std::map<std::string, std::string>& headers() const noexcept {
         return headers_;
     }
 
-    const std::string& method() const noexcept {
+    std::string_view method() const noexcept {
         return method_;
     }
 
-    const std::string& host() const noexcept {
+    std::string_view host() const noexcept {
         return host_;
     }
 
-    const std::string& hostname() const noexcept {
+    std::string_view hostname() const noexcept {
         return hostname_;
     }
 
-    const std::string& url() const noexcept {
+    std::string_view url() const noexcept {
         return url_;
     }
 
-    const std::string& origin() const noexcept {
+    std::string_view origin() const noexcept {
+        if (origin_.empty()) {
+            origin_ = https_ ? "https://" : "http://" + std::string{host_};
+        }
         return origin_;
     }
 
-    const std::string& href() const noexcept {
+    std::string_view href() const noexcept {
+        if (href_.empty()) {
+            href_ = std::string{origin()} + url_;
+        }
         return href_;
     }
 
-    const std::string& path() const noexcept {
+    std::string_view path() const noexcept {
         return path_;
     }
 
-    const std::string& querystring() const noexcept {
+    std::string_view querystring() const noexcept {
         return querystring_;
     }
 
     const std::multimap<std::string, std::string>& query() const noexcept {
+        if (!querystring_.empty() && query_.empty()) {
+            query_ = detail::utils::parse_query(querystring_);
+        }
         return query_;
     }
 
-    const std::string& search() const noexcept {
+    std::string_view search() const noexcept {
+        if (search_.empty()) {
+            search_ = std::string{"?"} + std::string{querystring_};
+        }
         return search_;
     }
 
-    const std::string& type() const noexcept {
+    std::string_view type() const noexcept {
         return content_type_;
     }
 
-    const std::string& charset() const noexcept {
+    std::string_view charset() const noexcept {
         return charset_;
     }
 
@@ -116,7 +129,7 @@ public:
         return keepalive_;
     }
 
-    const std::string& body() const noexcept {
+    std::string_view body() const noexcept {
         return body_;
     }
 
@@ -138,18 +151,11 @@ public:
 
     void reset() noexcept {
         has_more_requests_ = true;
-        host_.clear();
-        hostname_.clear();
         url_.clear();
         origin_.clear();
         href_.clear();
-        path_.clear();
-        querystring_.clear();
         query_.clear();
         search_.clear();
-        method_.clear();
-        content_type_.clear();
-        charset_.clear();
         content_length_ = 0;
         keepalive_ = false;
         websocket_ = false;
@@ -225,17 +231,15 @@ private:
         // host, hostname, origin, href
         self->host_ = self->get("Host");
         self->hostname_ = self->host_.substr(0, self->host_.rfind(":"));
-        self->origin_ = self->https_ ? "https://" : "http://" + self->host_;
-        self->href_ = self->origin_ + self->url_;
 
         // content_type, charset
-        const std::string content_type{self->get("Content-Type")};
+        std::string_view content_type{self->get("Content-Type")};
         const auto pos = content_type.find("charset");
-        if (pos != std::string::npos) {
+        if (pos != std::string_view::npos) {
             self->content_type_ = content_type.substr(0, content_type.find(";"));
             self->charset_ = content_type.substr(pos + 8);
         } else {
-            self->content_type_ = std::move(content_type);
+            self->content_type_ = content_type;
         }
 
         // content_length
@@ -245,15 +249,15 @@ private:
 
         // keepalive/websocket
         if (self->minor_version_ == 1) {
-            const auto& connection = self->get("Connection");
+            const auto connection = self->get("Connection");
             if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
                 self->keepalive_ = true;
             }
 
             if (parser->method == llhttp_method::HTTP_GET && detail::utils::iequals(connection, "Upgrade")) {
-                const auto& upgrade = self->get("Upgrade");
-                const auto& key = self->get("Sec-WebSocket-Key");
-                const auto& ws_version = self->get("Sec-WebSocket-Version");
+                const auto upgrade = self->get("Upgrade");
+                const auto key = self->get("Sec-WebSocket-Key");
+                const auto ws_version = self->get("Sec-WebSocket-Version");
                 if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
                     self->keepalive_ = true;
                     self->websocket_ = true;
@@ -301,15 +305,13 @@ private:
                     continue;
                 }
 
-                const std::string temp{url_.data() + url_parser.field_data[i].off, url_parser.field_data[i].len};
+                const std::string_view temp{url_.data() + url_parser.field_data[i].off, url_parser.field_data[i].len};
                 switch (i) {
                 case UF_PATH:
-                    path_ = std::move(temp);
+                    path_ = temp;
                     continue;
                 case UF_QUERY:
-                    querystring_ = std::move(temp);
-                    query_ = detail::utils::parse_query(querystring_);
-                    search_ = "?" + querystring_;
+                    querystring_ = temp;
                     continue;
                 default:
                     continue;
@@ -325,18 +327,18 @@ private:
     bool has_more_requests_{true};
     unsigned major_version_{1};
     unsigned minor_version_{1};
-    std::string host_;
-    std::string hostname_;
+    std::string_view host_;
+    std::string_view hostname_;
     std::string url_;
-    std::string origin_;
-    std::string href_;
-    std::string path_;
-    std::string querystring_;
-    std::multimap<std::string, std::string> query_;
-    std::string search_;
-    std::string method_;
-    std::string content_type_;
-    std::string charset_;
+    mutable std::string origin_;
+    mutable std::string href_;
+    std::string_view path_;
+    std::string_view querystring_;
+    mutable std::multimap<std::string, std::string> query_;
+    mutable std::string search_;
+    std::string_view method_;
+    std::string_view content_type_;
+    std::string_view charset_;
     std::uint64_t content_length_{0};
     bool keepalive_{false};
     bool websocket_{false};

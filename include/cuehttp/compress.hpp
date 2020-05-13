@@ -33,7 +33,7 @@ struct compress final {
         int level{8};
     };
 
-    inline static bool deflate(const std::string& src, std::string& dst, int level = 8) {
+    inline static bool deflate(std::string_view src, std::string& dst, int level = 8) {
         return detail::gzip::compress(src, dst, level);
     }
 };
@@ -52,7 +52,7 @@ inline auto use_compress(Options&& options) noexcept {
             return;
         }
 
-        const auto& body = ctx.res().dump_body();
+        const auto body = ctx.res().dump_body();
         std::string dst_body;
         if (!detail::gzip::compress(body, dst_body, options.level)) {
             ctx.status(500);

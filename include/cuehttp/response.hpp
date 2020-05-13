@@ -50,7 +50,7 @@ public:
 
     void status(unsigned status) {
         status_ = status;
-        message_ = detail::utils::get_message_for_status(status);
+        message_ = std::string{detail::utils::get_message_for_status(status)};
     }
 
     template <typename Msg>
@@ -58,7 +58,7 @@ public:
         message_ = std::forward<Msg>(message);
     }
 
-    bool has(const std::string& field) const noexcept {
+    bool has(std::string_view field) const noexcept {
         for (auto it = headers_.begin(); it != headers_.end(); ++it) {
             if (detail::utils::iequals(it->first, field)) {
                 return true;
@@ -67,13 +67,14 @@ public:
         return false;
     }
 
-    const std::string& get(const std::string& field) const noexcept {
+    std::string_view get(std::string_view field) const noexcept {
         for (const auto& header : headers_) {
             if (detail::utils::iequals(header.first, field)) {
                 return header.second;
             }
         }
-        return detail::global_value::empty_string();
+        using namespace std::literals;
+        return ""sv;
     }
 
     template <typename Field, typename Value>
@@ -89,7 +90,7 @@ public:
         headers_.insert(std::make_move_iterator(headers.begin()), std::make_move_iterator(headers.end()));
     }
 
-    void remove(const std::string& field) noexcept {
+    void remove(std::string_view field) noexcept {
         auto erase = headers_.end();
         for (auto it = headers_.begin(); it != headers_.end(); ++it) {
             if (detail::utils::iequals(it->first, field)) {
@@ -140,7 +141,7 @@ public:
         return !body_.empty();
     }
 
-    const std::string& dump_body() const noexcept {
+    std::string_view dump_body() const noexcept {
         return body_;
     }
 

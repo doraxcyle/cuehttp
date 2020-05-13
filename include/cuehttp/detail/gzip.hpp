@@ -31,7 +31,7 @@ namespace http {
 namespace detail {
 
 struct gzip final : safe_noncopyable {
-    inline static bool compress(const std::string& src, std::string& dst, int level = 8) {
+    inline static bool compress(std::string_view src, std::string& dst, int level = 8) {
         z_stream stream;
         stream.zalloc = Z_NULL;
         stream.zfree = Z_NULL;

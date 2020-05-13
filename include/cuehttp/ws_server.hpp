@@ -30,7 +30,7 @@
 namespace cue {
 namespace http {
 
-constexpr const char* ws_magic_key = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+constexpr std::string_view ws_magic_key{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 
 class ws_server final : safe_noncopyable {
 public:
@@ -44,7 +44,7 @@ public:
         return *this;
     }
 
-    void broadcast(const std::string& msg, ws_send::options options = {}) {
+    void broadcast(std::string_view msg, ws_send::options options = {}) {
         std::unique_lock<std::mutex> lock{clients_mutex_};
         for (const auto& client : clients_) {
             client->send(std::string{msg}, options);
@@ -70,11 +70,11 @@ public:
                 return;
             }
             // websocket handshake response
-            auto key = ctx.get("Sec-WebSocket-Key");
-            key += ws_magic_key;
+            std::string key{ctx.get("Sec-WebSocket-Key")};
+            key.append(ws_magic_key.data(), ws_magic_key.size());
             unsigned char hash[20]{0};
             detail::sha1::calc(key.data(), key.size(), hash);
-            std::string accept_key = detail::utils::base64_encode(std::string{reinterpret_cast<char*>(hash), 20});
+            std::string accept_key = detail::utils::base64_encode({reinterpret_cast<char*>(hash), 20});
             ctx.set("Sec-WebSocket-Accept", std::move(accept_key));
             ctx.set("Connection", "Upgrade");
             ctx.set("Upgrade", "WebSocket");

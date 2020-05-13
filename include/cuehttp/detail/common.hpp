@@ -29,6 +29,23 @@
 #include <vector>
 #include <string>
 #include <random>
+#if __cplusplus > 201402L
+#include <string_view>
+#else
+#include "cuehttp/3rd_party/string_view.hpp"
+namespace std {
+using namespace nonstd;
+namespace literals {
+using namespace nonstd::literals::string_view_literals;
+namespace string_view_literals {
+using namespace nonstd::literals::string_view_literals;
+} // namespace string_view_literals
+} // namespace literals
+namespace string_view_literals {
+using namespace nonstd::literals::string_view_literals;
+} // namespace string_view_literals
+} // namespace std
+#endif // __cplusplus > 201402L
 #include <boost/algorithm/string.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
@@ -83,18 +100,7 @@ struct ws_frame final {
 };
 
 // global variables
-struct global_value final : safe_noncopyable {
-    // for empty string const reference
-    static const std::string& empty_string() noexcept {
-        static const std::string empty{""};
-        return empty;
-    }
-
-    static const std::string& cookie_expires_date() noexcept {
-        static const std::string expires_date{"Thu, 01 Jan 1970 00:00:00 GMT"};
-        return expires_date;
-    }
-};
+constexpr std::string_view cookie_expires_date{"Thu, 01 Jan 1970 00:00:00 GMT"};
 
 // meta utilities
 template <typename T>
@@ -114,36 +120,35 @@ struct utils final : safe_noncopyable {
         return duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    inline static std::string to_method_string(unsigned method) noexcept {
-        std::string method_string;
+    inline static std::string_view to_method_string(unsigned method) noexcept {
+        using namespace std::literals;
         switch (method) {
         case llhttp_method::HTTP_DELETE:
-            method_string = "DELETE";
+            return "DELETE"sv;
             break;
         case llhttp_method::HTTP_GET:
-            method_string = "GET";
+            return "GET"sv;
             break;
         case llhttp_method::HTTP_HEAD:
-            method_string = "HEAD";
+            return "HEAD"sv;
             break;
         case llhttp_method::HTTP_POST:
-            method_string = "POST";
+            return "POST"sv;
             break;
         case llhttp_method::HTTP_PUT:
-            method_string = "PUT";
-            break;
+            return "PUT"sv;
         default:
             break;
         }
-        return method_string;
+        return ""sv;
     }
 
-    inline static bool iequals(const std::string& lhs, const std::string& rhs) noexcept {
+    inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
         return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
                           [](char l, char r) { return std::tolower(l) == std::tolower(r); });
     }
 
-    inline static std::string to_lower(const std::string& str) noexcept {
+    inline static std::string to_lower(std::string_view str) noexcept {
         std::string lower_str;
         for (const auto& c : str) {
             lower_str += std::tolower(c);
@@ -151,7 +156,7 @@ struct utils final : safe_noncopyable {
         return lower_str;
     }
 
-    static std::multimap<std::string, std::string> parse_query(const std::string& querystring) {
+    static std::multimap<std::string, std::string> parse_query(std::string_view querystring) {
         static const auto decode = [](const std::string& str, std::string& decoded) {
             auto it = str.cbegin();
             auto end = str.cend();
@@ -191,7 +196,7 @@ struct utils final : safe_noncopyable {
         };
 
         std::multimap<std::string, std::string> query;
-        std::string::const_iterator it{querystring.begin()}, end{querystring.end()};
+        std::string_view::const_iterator it{querystring.begin()}, end{querystring.end()};
         while (it != end) {
             std::string name, value;
             while (it != end && *it != '=' && *it != '&') {
@@ -224,126 +229,127 @@ struct utils final : safe_noncopyable {
         return query;
     }
 
-    static std::string get_message_for_status(unsigned status) noexcept {
+    static std::string_view get_message_for_status(unsigned status) noexcept {
+        using namespace std::literals;
         switch (status) {
         case 100:
-            return "Continue";
+            return "Continue"sv;
         case 101:
-            return "Switching Protocols";
+            return "Switching Protocols"sv;
         case 102:
-            return "Processing";
+            return "Processing"sv;
         case 200:
-            return "OK";
+            return "OK"sv;
         case 201:
-            return "Created";
+            return "Created"sv;
         case 202:
-            return "Accepted";
+            return "Accepted"sv;
         case 203:
-            return "Non-Authoritative Information";
+            return "Non-Authoritative Information"sv;
         case 204:
-            return "No Content";
+            return "No Content"sv;
         case 205:
-            return "Reset Content";
+            return "Reset Content"sv;
         case 206:
-            return "Partial Content";
+            return "Partial Content"sv;
         case 207:
-            return "Multi-Status";
+            return "Multi-Status"sv;
         case 208:
-            return "Already Reported";
+            return "Already Reported"sv;
         case 226:
-            return "IM Used";
+            return "IM Used"sv;
         case 300:
-            return "Multiple Choices";
+            return "Multiple Choices"sv;
         case 301:
-            return "Moved Permanently";
+            return "Moved Permanently"sv;
         case 302:
-            return "Found";
+            return "Found"sv;
         case 303:
-            return "See Other";
+            return "See Other"sv;
         case 304:
-            return "Not Modified";
+            return "Not Modified"sv;
         case 305:
-            return "Use Proxy";
+            return "Use Proxy"sv;
         case 307:
-            return "Temporary Redirect";
+            return "Temporary Redirect"sv;
         case 308:
-            return "Permanent Redirect";
+            return "Permanent Redirect"sv;
         case 400:
-            return "Bad Request";
+            return "Bad Request"sv;
         case 401:
-            return "Unauthorized";
+            return "Unauthorized"sv;
         case 402:
-            return "Payment Required";
+            return "Payment Required"sv;
         case 403:
-            return "Forbidden";
+            return "Forbidden"sv;
         case 404:
-            return "Not Found";
+            return "Not Found"sv;
         case 405:
-            return "Method Not Allowed";
+            return "Method Not Allowed"sv;
         case 406:
-            return "Not Acceptable";
+            return "Not Acceptable"sv;
         case 407:
-            return "Proxy Authentication Required";
+            return "Proxy Authentication Required"sv;
         case 408:
-            return "Request Timeout";
+            return "Request Timeout"sv;
         case 409:
-            return "Conflict";
+            return "Conflict"sv;
         case 410:
-            return "Gone";
+            return "Gone"sv;
         case 411:
-            return "Length Required";
+            return "Length Required"sv;
         case 412:
-            return "Precondition Failed";
+            return "Precondition Failed"sv;
         case 413:
-            return "Payload Too Large";
+            return "Payload Too Large"sv;
         case 414:
-            return "URI Too Long";
+            return "URI Too Long"sv;
         case 415:
-            return "Unsupported Media Type";
+            return "Unsupported Media Type"sv;
         case 416:
-            return "Range Not Satisfiable";
+            return "Range Not Satisfiable"sv;
         case 417:
-            return "Expectation Failed";
+            return "Expectation Failed"sv;
         case 418:
-            return "I'm a Teapot";
+            return "I'm a Teapot"sv;
         case 422:
-            return "Unprocessable Entity";
+            return "Unprocessable Entity"sv;
         case 423:
-            return "Locked";
+            return "Locked"sv;
         case 424:
-            return "Failed Dependency";
+            return "Failed Dependency"sv;
         case 426:
-            return "Upgrade Required";
+            return "Upgrade Required"sv;
         case 428:
-            return "Precondition Required";
+            return "Precondition Required"sv;
         case 429:
-            return "Too Many Requests";
+            return "Too Many Requests"sv;
         case 431:
-            return "Request Header Fields Too Large";
+            return "Request Header Fields Too Large"sv;
         case 500:
-            return "Internal Server Error";
+            return "Internal Server Error"sv;
         case 501:
-            return "Not Implemented";
+            return "Not Implemented"sv;
         case 502:
-            return "Bad Gateway";
+            return "Bad Gateway"sv;
         case 503:
-            return "Service Unavailable";
+            return "Service Unavailable"sv;
         case 504:
-            return "Gateway Timeout";
+            return "Gateway Timeout"sv;
         case 505:
-            return "HTTP Version Not Supported";
+            return "HTTP Version Not Supported"sv;
         case 506:
-            return "Variant Also Negotiates";
+            return "Variant Also Negotiates"sv;
         case 507:
-            return "Insufficient Storage";
+            return "Insufficient Storage"sv;
         case 508:
-            return "Loop Detected";
+            return "Loop Detected"sv;
         case 510:
-            return "Not Extended";
+            return "Not Extended"sv;
         case 511:
-            return "Network Authentication Required";
+            return "Network Authentication Required"sv;
         default:
-            return "???";
+            return "???"sv;
         }
     }
 
@@ -360,13 +366,13 @@ struct utils final : safe_noncopyable {
         return buff;
     }
 
-    static std::vector<std::string> split(const std::string& str, const std::string& separators) noexcept {
+    static std::vector<std::string> split(std::string_view str, std::string_view separators) noexcept {
         std::size_t start{0};
         std::size_t end{str.find_first_of(separators)};
         std::vector<std::string> tookens;
-        while (end <= std::string::npos) {
+        while (end <= std::string_view::npos) {
             tookens.emplace_back(str.substr(start, end - start));
-            if (end == std::string::npos) {
+            if (end == std::string_view::npos) {
                 break;
             }
             start = end + 1;
@@ -375,7 +381,7 @@ struct utils final : safe_noncopyable {
         return tookens;
     }
 
-    static std::string base64_encode(const std::string& source) {
+    static std::string base64_encode(std::string_view source) {
         using base64_encode_iterator = boost::archive::iterators::base64_from_binary<
             boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>;
         std::stringstream result;
@@ -388,7 +394,7 @@ struct utils final : safe_noncopyable {
         return result.str();
     }
 
-    static std::string base64_decode(const std::string& source) noexcept {
+    static std::string base64_decode(std::string_view source) noexcept {
         using base64_decode_iterator = boost::archive::iterators::transform_width<
             boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
         std::string result;
