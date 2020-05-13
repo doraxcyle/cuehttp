@@ -26,7 +26,7 @@ cuehttp依赖boost，以及使用最低依赖C++14。cuehttp是header-only的，
 
 cuehttp是非常的简洁易用的，使用use接口即可添加中间件。
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
 cuehttp支持HTTPS，并且支持HTTP和HTTPS同时使用。`注：cue::http::cuehttp默认listen创建的是HTTP的，若要使用HTTPS，需要使用https::create_server创建。`
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 
 cuehttp支持WebSocket，支持ws/wss同时使用。支持wss需要开启HTTPS(见上节)。
 
-```c++
+```cpp
 #include <iostream>
 #include <vector>
 
@@ -126,7 +126,7 @@ cuehttp中的中间件通过next函数调用控制下游中间件的运行，当
 
     中间件需要调用next控制下游中间件执行，若next不调用，则下游所有中间件无法执行。
 
-```c++
+```cpp
 #include <iostream>
 
 #include <cuehttp.hpp>
@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
 
 支持多种中间件执行体（普通函数、类成员函数、operator()、std::function、lambda），支持批量添加，支持链式调用。
 
-```c++
+```cpp
 #include <iostream>
 #include <vector>
 
@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
 
 支持chunked响应。
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
@@ -349,7 +349,7 @@ cuehttp主体程序，用于注册中间件、启停HTTP服务。
 
 创建HTTP服务，传入handler。
 
-```c++
+```cpp
 using namespace cue::http;
 cuehttp app;
 ...
@@ -363,7 +363,7 @@ server.listen(10000).run();
 
 创建HTTPS服务，传入handler。
 
-```c++
+```cpp
 using namespace cue::http;
 cuehttp app;
 ...
@@ -377,7 +377,7 @@ server.listen(10000).run();
 
 注册中间件到WebSocket server中，返回ws_server对象的引用用于进行链式调用。具体使用参考[中间件级联](#中间件级联)，[内置中间件](#内置中间件)。
 
-#### void broadcast(const std::string& msg, [ws_send::options options])
+#### void broadcast(std::string_view msg, [ws_send::options options])
 
 对所有连接的客户端进行消息广播。
 | ws_send::options | 类型 | 描述                       | 默认值 |
@@ -410,67 +410,67 @@ chehttp中间件接口的HTTP处理上下文。
 
 获取请求携带的header信息，header的field以及value键值对组。
 
-#### const std::string& get(const std::string& field) const
+#### std::string_view get(std::string_view field) const
 
 获取请求中header信息中对应field的value，无则返回空字符串。
 
-#### const std::string& method() const
+#### std::string_view method() const
 
 获取请求的method。
 
-#### const std::string& host() const
+#### std::string_view host() const
 
 获取请求中host。hostname:port。
 
-```c++
+```cpp
 127.0.0.1:1000
 ```
 
-#### const std::string& hostname() const
+#### std::string_view hostname() const
 
 获取请求中的hostname。
 
-```c++
+```cpp
 127.0.0.1
 ```
 
-#### const std::string& url() const
+#### std::string_view url() const
 
 获取请求的url。
 
-```c++
+```cpp
 /get?sid=hosdghtsdvojoj
 ```
 
-#### const std::string& origin() const
+#### std::string_view origin() const
 
 获取请求的url来源，包含protocol和host。
 
-```c++
+```cpp
 http://127.0.0.1:10000
 ```
 
-#### const std::string& href() const
+#### std::string_view href() const
 
 获取请求的完整url，包含protocol、host、url。
 
-```c++
+```cpp
 http://127.0.0.1:10000/get?sid=hosdghtsdvojoj
 ```
 
-#### const std::string& path() const
+#### std::string_view path() const
 
 获取请求路径名。
 
-```c++
+```cpp
 /get
 ```
 
-#### const std::string& querystring() const
+#### std::string_view querystring() const
 
 获取请求查询字符串。
 
-```c++
+```cpp
 sid=hosdghtsdvojoj
 ```
 
@@ -498,7 +498,7 @@ sid=hosdghtsdvojoj
 
 向响应中添加一组header。
 
-#### void remove(const std::string& field)
+#### void remove(std::string_view field)
 
 将响应中对应field的header删除。
 
@@ -530,13 +530,13 @@ sid=hosdghtsdvojoj
 
 获取响应体流操作对象(`std::ostream`)，用于以流的方式设置响应体，调用接口时发送响应header，流操作时发送响应体。
 
-```c++
+```cpp
 ctx.body() << "hello cuehttp";
 ```
 
 ### cue::http::request
 
-#### const std::string& get(const std::string& field) const
+#### std::string_view get(std::string_view field) const
 
 获取请求中header信息中对应field的value，无则返回空字符串。
 
@@ -544,63 +544,63 @@ ctx.body() << "hello cuehttp";
 
 获取请求携带的header信息，header的field以及value键值对组。
 
-#### const std::string& method() const
+#### std::string_view method() const
 
 获取请求的method。
 
-#### const std::string& host() const
+#### std::string_view host() const
 
 获取请求中host。hostname:port。
 
-```c++
+```cpp
 127.0.0.1:1000
 ```
 
-#### const std::string& hostname() const
+#### std::string_view hostname() const
 
 获取请求中的hostname。
 
-```c++
+```cpp
 127.0.0.1
 ```
 
-#### const std::string& url()
+#### std::string_view url() const
 
 获取请求的url。
 
-```c++
+```cpp
 /get?sid=hosdghtsdvojoj
 ```
 
-#### const std::string& origin() const
+#### std::string_view origin() const
 
 获取请求的url来源，包含protocol和host。
 
-```c++
+```cpp
 http://127.0.0.1:10000
 ```
 
-#### const std::string& href() const
+#### std::string_view href() const
 
 获取请求的完整url，包含protocol、host、url。
 
-```c++
+```cpp
 http://127.0.0.1:10000/get?sid=hosdghtsdvojoj
 ```
 
-#### const std::string& path() const
+#### std::string_view path() const
 
 获取请求路径名。
 
-```c++
+```cpp
 /get
 ```
 
-#### const std::string& querystring() const
+#### std::string_view querystring() const
 
 获取请求查询字符串。
 
-```c++
+```cpp
 sid=hosdghtsdvojoj
 ```
 
@@ -608,19 +608,19 @@ sid=hosdghtsdvojoj
 
 获取请求的query列表。name和value键值对组。
 
-#### const std::string& search() const
+#### std::string_view search() const
 
 获取请求查询字符串，带?。
 
-```c++
+```cpp
 ?sid=hosdghtsdvojoj
 ```
 
-#### const std::string& type() const
+#### std::string_view type() const
 
 获取请求的content type。
 
-#### const std::string& charset() const
+#### std::string_view charset() const
 
 获取请求content的charset。
 
@@ -628,7 +628,7 @@ sid=hosdghtsdvojoj
 
 获取请求的content length。
 
-#### const std::string& body()
+#### std::string_view body()
 
 获取请求携带的body。
 
@@ -646,11 +646,11 @@ sid=hosdghtsdvojoj
 
 设置响应的信息，对应status。
 
-#### bool has(const std::string& field) const
+#### bool has(std::string_view field) const
 
 获取响应是否设置了某个header。
 
-#### const std::string& get(const std::string& field) const
+#### std::string_view get(std::string_view field) const
 
 获取响应中某个header，不存在返回空。
 
@@ -662,7 +662,7 @@ sid=hosdghtsdvojoj
 
 向响应中添加一组header。
 
-#### void remove(const std::string& field)
+#### void remove(std::string_view field)
 
 将响应中对应field的header删除。
 
@@ -694,7 +694,7 @@ sid=hosdghtsdvojoj
 
 获取响应体流操作对象(`std::ostream`)，用于以流的方式设置响应体，调用接口时发送响应header，流操作时发送响应体。
 
-```c++
+```cpp
 response.body() << "hello cuehttp";
 ```
 
@@ -714,7 +714,7 @@ response.body() << "hello cuehttp";
 
 #### void send(string msg, [ws_send::options options])
 
-向客户端发送消息。options同[options](#void broadcast(const std::string& msg, [ws_send::options options]))。
+向客户端发送消息。options同[options](#void broadcast(std::string_view msg, [ws_send::options options]))。
 
 #### void close()
 
@@ -722,7 +722,7 @@ response.body() << "hello cuehttp";
 
 ### cue::http::cookies
 
-#### const std::string& get(const std::string& name) const
+#### std::string_view get(std::string_view name) const
 
 获取请求中携带的cookie的值，无则返回空。
 
@@ -745,7 +745,7 @@ response.body() << "hello cuehttp";
 
 ### cue::http::cookie
 
-#### const std::string& get(const std::string& name) const
+#### std::string_view get(std::string_view name) const
 
 获取cookie的值，无则返回空。
 
@@ -753,7 +753,7 @@ response.body() << "hello cuehttp";
 
 设置cookie。options同[options](#void set(string name, string value, [cookie::options options]))。
 
-#### const std::string& name() const
+#### std::string_view name() const
 
 获取cookie的键，无则返回空。
 
@@ -761,7 +761,7 @@ response.body() << "hello cuehttp";
 
 设置cookie的键。
 
-#### const std::string& value() const
+#### std::string_view value() const
 
 获取cookie的值，无则返回空。
 
@@ -777,7 +777,7 @@ response.body() << "hello cuehttp";
 
 设置cookie过期时间。
 
-#### const std::string& expires() const
+#### std::string_view expires() const
 
 获取cookie过期日期，无则返回空。
 
@@ -785,7 +785,7 @@ response.body() << "hello cuehttp";
 
 设置cookie过期日期。
 
-#### const std::string& path() const
+#### std::string_view path() const
 
 获取cookie允许的路径，默认返回"/"。
 
@@ -793,7 +793,7 @@ response.body() << "hello cuehttp";
 
 设置cookie允许的路径。
 
-#### const std::string& domain() const
+#### std::string_view domain() const
 
 获取cookie允许的域名。
 
@@ -825,7 +825,7 @@ response.body() << "hello cuehttp";
 
 #### 示例
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
@@ -875,13 +875,13 @@ int main(int argc, char** argv) {
 
 示例：
 
-```c++
+```cpp
 cue::http::cuehttp app;
 cue::http::router route;
 app.use(route.routes());
 ```
 
-##### router& del|get|head|post|put|all(const std::string& path, ...)
+##### router& del|get|head|post|put|all(std::string_view path, ...)
 
 注册对应method和path的处理函数，支持普通函数、类成员函数、operator()、std::function、lambda、multiple。
 
@@ -891,7 +891,7 @@ all接口将注册所有支持的method。
 
 示例：
 
-```c++
+```cpp
 void f1(context& ctx) {
     std::cout << "f1" << std::endl;
 }
@@ -1004,13 +1004,13 @@ route.get(
     [](context& ctx) { std::cout << "after get" << std::endl; });
 ```
 
-##### router& redirect(const std::string& path, string destination, [unsigned status])
+##### router& redirect(std::string_view path, string destination, [unsigned status])
 
 重定向接口，将path重定向到destination。默认status为301。
 
 相当于：
 
-```c++
+```cpp
 route.all(path, [](context& ctx) {
     ctx.redirect(destination);
     ctx.status(301);
@@ -1025,7 +1025,7 @@ cuehttp提供了简单的session中间件。默认使用cookie进行session交�
 
 每访问一次/test_session，页面的数字就加一。
 
-```c++
+```cpp
 #include <iostream>
 
 #include <cuehttp.hpp>
@@ -1054,11 +1054,11 @@ int main(int argc, char** argv) {
     //     std::cout << "external_key.get" << std::endl;
     //     return ctx.get("User-Token");
     // };
-    // session_opt.external_key.set = [](context& ctx, const std::string& value) {
+    // session_opt.external_key.set = [](context& ctx, std::string_view value) {
     //     std::cout << "external_key.set" << std::endl;
     //     return ctx.set("User-Token", value);
     // };
-    // session_opt.external_key.destroy = [](context& ctx, const std::string& value) {
+    // session_opt.external_key.destroy = [](context& ctx, std::string_view value) {
     //     std::cout << "external_key.destroy" << std::endl;
     //     return ctx.remove("User-Token");
     // };
@@ -1090,15 +1090,15 @@ int main(int argc, char** argv) {
 
 用于session的外部操作，若store不设置则默认时用cookie进行交互。get、set、destroy需要同时配置。
 
-######  std::function<std::string(const std::string&)> get
+######  std::function<std::string(std::string_view)> get
 
 传入key，返回对应session的值。
 
-###### std::function<void(const std::string&, const std::string&, std::uint32_t)> set
+###### std::function<void(std::string_view, std::string_view, std::uint32_t)> set
 
 传入key、value、过期时间(单位秒)来设置session。
 
-###### std::function<void(const std::string&)> destroy
+###### std::function<void(std::string_view)> destroy
 
 传入key，删除对应session的外部存储。
 
@@ -1110,11 +1110,11 @@ int main(int argc, char** argv) {
 
 获取对应HTTP会话外部提供的key。
 
-###### std::function<void(context&, const std::string&)> set
+###### std::function<void(context&, std::string_view)> set
 
 设置对应HTTP会话的key。
 
-###### std::function<void(context&, const std::string&)> destroy
+###### std::function<void(context&, std::string_view)> destroy
 
 删除对应HTTP会话的key。
 
@@ -1152,7 +1152,7 @@ int main(int argc, char** argv) {
 | threshold         | std::uint64_t | 配置body使用gzip压缩的临界字节大小 | 2048   |
 | level             | int           | 压缩等级                           | 8      |
 
-#####  bool compress::deflate(const std::string& src, std::string& dst, int level = 8)
+#####  bool compress::deflate(std::string_view src, std::string& dst, int level = 8)
 
 内容压缩接口。
 
@@ -1162,18 +1162,18 @@ cuehttp的静态文件发送中间件。为cuehttp提供离线文件请求支持
 
 #### 示例
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
     router route;
-    // 当请求http://ip:port/c++.pptx时返回C:/Users/xcyl/Desktop/c++11.pptx
-    route.get("/c++.pptx", [](context& ctx) {
+    // 当请求http://ip:port/cpp.pptx时返回C:/Users/xcyl/Desktop/cpp11.pptx
+    route.get("/cpp.pptx", [](context& ctx) {
         send::options opt;
         opt.root = "C:/Users/xcyl/Desktop/";
-        send_file(ctx, "c++11.pptx", opt);
+        send_file(ctx, "cpp11.pptx", opt);
     });
 
     // 当请求http://ip:port/book时返回C:/Users/xcyl/Desktop/C++Templates.pdf
@@ -1214,7 +1214,7 @@ int main(int argc, char** argv) {
 
 #### 示例
 
-```c++
+```cpp
 #include <cuehttp.hpp>
 
 using namespace cue::http;
