@@ -197,30 +197,31 @@ private:
 
     void parse_cookie() {
         assert(!cookie_string_.empty());
-        static const std::unordered_set<std::string> options_names{"path", "domain", "max-age", "expires"};
+        using namespace std::literals;
+        static const std::unordered_set<std::string_view> options_names{"path"sv, "domain"sv, "max-age"sv, "expires"sv};
         const auto cookie_map = detail::utils::split(cookie_string_, "; ");
         for (const auto& cookie : cookie_map) {
             const auto key_value = detail::utils::split(cookie, "=");
             // key=value
             if (key_value.size() >= 2) {
                 if (options_names.count(detail::utils::to_lower(key_value[0])) == 0) {
-                    name_ = std::move(key_value[0]);
-                    value_ = std::move(key_value[1]);
+                    name_ = std::string{key_value[0]};
+                    value_ = std::string{key_value[1]};
                 } else {
                     if (detail::utils::iequals(key_value[0], "path")) {
-                        options_.path = std::move(key_value[1]);
+                        options_.path = std::string{key_value[1]};
                         continue;
                     }
                     if (detail::utils::iequals(key_value[0], "domain")) {
-                        options_.domain = std::move(key_value[1]);
+                        options_.domain = std::string{key_value[1]};
                         continue;
                     }
                     if (detail::utils::iequals(key_value[0], "expires")) {
-                        options_.expires = std::move(key_value[1]);
+                        options_.expires = std::string{key_value[1]};
                         continue;
                     }
                     if (detail::utils::iequals(key_value[0], "max-age")) {
-                        options_.max_age = std::stoi(key_value[1]);
+                        options_.max_age = std::atoi(key_value[1].data());
                     }
                 }
             } else {

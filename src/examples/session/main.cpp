@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         if (view_str.empty()) {
             ctx.session().set("view", std::to_string(view));
         } else {
-            view = std::stoi(std::string{view_str});
+            view = std::atoi(view_str.data());
             ctx.session().set("view", std::to_string(view + 1));
         }
         ctx.type("text/html");
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     app.use(use_session(std::move(session_opt)));
     app.use(route.routes());
 
-    app.listen(10000).run();
+    app.listen(10001).run();
 
     return 0;
 }

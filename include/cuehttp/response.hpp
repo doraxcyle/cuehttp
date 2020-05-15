@@ -126,7 +126,7 @@ public:
 
     template <typename ContentType>
     void type(ContentType&& content_type) {
-        set("Content-type", std::forward<ContentType>(content_type));
+        set("Content-Type", std::forward<ContentType>(content_type));
     }
 
     std::uint64_t length() const noexcept {
@@ -188,13 +188,13 @@ public:
 
         // headers
         str.append("Server: cuehttp\r\n");
-        str.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
+        // str.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
         for (const auto& header : headers_) {
             str.append(header.first + ": " + header.second + "\r\n");
         }
 
-        if (get("Connection").empty() && keepalive_) {
-            str.append("Connection: keep-alive\r\n");
+        if (get("Connection").empty() && !keepalive_) {
+            str.append("Connection: close\r\n");
         }
 
         // cookies
@@ -209,7 +209,7 @@ public:
             // chunked
             str.append("\r\n");
         } else {
-            str.append("Content-length: " + std::to_string(content_length_) + "\r\n\r\n");
+            str.append("Content-Length: " + std::to_string(content_length_) + "\r\n\r\n");
             str.append(body_);
         }
 
@@ -228,7 +228,7 @@ private:
         os << "HTTP/" << major_version_ << '.' << minor_version_ << ' ' << status_ << ' ' << message_ << "\r\n";
 
         // headers
-        os << "Server: cuehttp\r\n";
+        os << "Server: cinatra\r\n";
         os << "Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n";
         for (const auto& header : headers_) {
             if (chunked() && detail::utils::iequals(header.first, "Content-length")) {
@@ -252,8 +252,8 @@ private:
         if (chunked()) {
             os << "\r\n";
         } else {
-            if (!has("Content-length")) {
-                os << "Content-length: " << content_length_ << "\r\n\r\n";
+            if (!has("Content-Length")) {
+                os << "Content-Length: " << content_length_ << "\r\n\r\n";
             }
         }
         return os.str();

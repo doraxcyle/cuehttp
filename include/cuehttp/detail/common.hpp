@@ -366,10 +366,10 @@ struct utils final : safe_noncopyable {
         return buff;
     }
 
-    static std::vector<std::string> split(std::string_view str, std::string_view separators) noexcept {
+    static std::vector<std::string_view> split(std::string_view str, std::string_view separators) noexcept {
         std::size_t start{0};
         std::size_t end{str.find_first_of(separators)};
-        std::vector<std::string> tookens;
+        std::vector<std::string_view> tookens;
         while (end <= std::string_view::npos) {
             tookens.emplace_back(str.substr(start, end - start));
             if (end == std::string_view::npos) {
