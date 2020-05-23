@@ -115,12 +115,12 @@ using is_middleware_list =
 
 // utilities functions
 struct utils final : safe_noncopyable {
-    inline static std::int64_t now() {
+    static std::int64_t now() {
         using namespace std::chrono;
         return duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    inline static std::string_view to_method_string(unsigned method) noexcept {
+    constexpr static std::string_view to_method_string(unsigned method) noexcept {
         using namespace std::literals;
         switch (method) {
         case llhttp_method::HTTP_DELETE:
@@ -143,12 +143,12 @@ struct utils final : safe_noncopyable {
         return ""sv;
     }
 
-    inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
+    static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
         return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
                           [](char l, char r) { return std::tolower(l) == std::tolower(r); });
     }
 
-    inline static std::string to_lower(std::string_view str) noexcept {
+    static std::string to_lower(std::string_view str) noexcept {
         std::string lower_str;
         for (const auto& c : str) {
             lower_str += std::tolower(c);
@@ -229,7 +229,7 @@ struct utils final : safe_noncopyable {
         return query;
     }
 
-    static std::string_view get_message_for_status(unsigned status) noexcept {
+    constexpr static std::string_view get_message_for_status(unsigned status) noexcept {
         using namespace std::literals;
         switch (status) {
         case 100:
@@ -353,7 +353,7 @@ struct utils final : safe_noncopyable {
         }
     }
 
-    inline static std::string to_gmt_string(std::time_t time) noexcept {
+    static std::string to_gmt_string(std::time_t time) noexcept {
         struct tm* gmt;
 #ifdef __linux__
         struct tm now;
@@ -416,12 +416,12 @@ struct utils final : safe_noncopyable {
         return result;
     }
 
-    inline static std::string uuid() {
+    static std::string uuid() {
         const auto uuid = boost::uuids::random_generator()();
         return boost::uuids::to_string(uuid);
     }
 
-    inline static std::uint32_t random_uint32() {
+    static std::uint32_t random_uint32() {
         std::mt19937 generator{static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
         return generator();
     }

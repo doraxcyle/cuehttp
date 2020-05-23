@@ -87,17 +87,18 @@ protected:
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
-                }
-
-                const auto parse_code = context_.req().parse(bytes_transferred);
-                // code 21 for websocket
-                if (parse_code == 0 || parse_code == 21) {
-                    handle_and_reply();
-                } else if (parse_code >= 4 && parse_code <= 14) {
-                    reply_error(400);
                 } else {
-                    do_read();
+                    const auto parse_code = context_.req().parse(bytes_transferred);
+                    // > 0 success
+                    // = -1 error
+                    // = -2 not complete
+                    if (parse_code > 0) {
+                        handle_and_reply();
+                    } else if (parse_code == -1) {
+                        reply_error(400);
+                    } else {
+                        do_read();
+                    }
                 }
             });
     }
@@ -110,10 +111,9 @@ protected:
 
     void handle_and_reply() {
         handle();
-        if (!context_.res().valid()) {
-            return;
+        if (context_.res().valid()) {
+            reply();
         }
-        reply();
     }
 
     void handle() {
@@ -131,14 +131,13 @@ protected:
     void reply() {
         auto response = context_.res().to_string();
         boost::asio::async_write(
-            socket_, boost::asio::buffer(response.data(), response.size()),
+            socket_, boost::asio::buffer(response),
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
+                } else {
+                    check_connection();
                 }
-
-                check_connection();
             });
     }
 
@@ -148,16 +147,14 @@ protected:
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
+                } else {
+                    buffer_.consume(bytes_transferred);
+                    if (buffer_.size() != 0) {
+                        do_write();
+                    } else {
+                        check_connection();
+                    }
                 }
-
-                buffer_.consume(bytes_transferred);
-                if (buffer_.size() != 0) {
-                    do_write();
-                    return;
-                }
-
-                check_connection();
             });
     }
 
@@ -189,19 +186,18 @@ protected:
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
-                }
-
-                ws_reader_->fin = ws_reader_->header[0] & 0x80;
-                ws_reader_->opcode = static_cast<detail::ws_opcode>(ws_reader_->header[0] & 0xf);
-                ws_reader_->has_mask = ws_reader_->header[1] & 0x80;
-                ws_reader_->length = ws_reader_->header[1] & 0x7f;
-                if (ws_reader_->length == 126) {
-                    do_read_ws_length_and_mask(2);
-                } else if (ws_reader_->length == 127) {
-                    do_read_ws_length_and_mask(8);
                 } else {
-                    do_read_ws_length_and_mask(0);
+                    ws_reader_->fin = ws_reader_->header[0] & 0x80;
+                    ws_reader_->opcode = static_cast<detail::ws_opcode>(ws_reader_->header[0] & 0xf);
+                    ws_reader_->has_mask = ws_reader_->header[1] & 0x80;
+                    ws_reader_->length = ws_reader_->header[1] & 0x7f;
+                    if (ws_reader_->length == 126) {
+                        do_read_ws_length_and_mask(2);
+                    } else if (ws_reader_->length == 127) {
+                        do_read_ws_length_and_mask(8);
+                    } else {
+                        do_read_ws_length_and_mask(0);
+                    }
                 }
             });
     }
@@ -210,37 +206,36 @@ protected:
         const auto length = bytes + (ws_reader_->has_mask ? 4 : 0);
         if (length == 0) {
             handle_ws();
-            return;
+        } else {
+            ws_reader_->length_mask_buffer.resize(length);
+            boost::asio::async_read(
+                socket_, boost::asio::buffer(ws_reader_->length_mask_buffer.data(), length),
+                [bytes, this, self = this->shared_from_this()](boost::system::error_code code,
+                                                               std::size_t bytes_transferred) {
+                    if (code) {
+                        close();
+                    } else {
+                        if (bytes == 2) {
+                            ws_reader_->length = detail::from_be(
+                                *reinterpret_cast<std::uint16_t*>(ws_reader_->length_mask_buffer.data()));
+                            if (ws_reader_->has_mask) {
+                                memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 2, 4);
+                            }
+                        } else if (bytes == 8) {
+                            ws_reader_->length = detail::from_be(
+                                *reinterpret_cast<std::uint64_t*>(ws_reader_->length_mask_buffer.data()));
+                            if (ws_reader_->has_mask) {
+                                memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 8, 4);
+                            }
+                        } else {
+                            if (ws_reader_->has_mask) {
+                                memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data(), 4);
+                            }
+                        }
+                        do_read_ws_payload();
+                    }
+                });
         }
-        ws_reader_->length_mask_buffer.resize(length);
-        boost::asio::async_read(
-            socket_, boost::asio::buffer(ws_reader_->length_mask_buffer.data(), length),
-            [bytes, this, self = this->shared_from_this()](boost::system::error_code code,
-                                                           std::size_t bytes_transferred) {
-                if (code) {
-                    close();
-                    return;
-                }
-
-                if (bytes == 2) {
-                    ws_reader_->length =
-                        detail::from_be(*reinterpret_cast<std::uint16_t*>(ws_reader_->length_mask_buffer.data()));
-                    if (ws_reader_->has_mask) {
-                        memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 2, 4);
-                    }
-                } else if (bytes == 8) {
-                    ws_reader_->length =
-                        detail::from_be(*reinterpret_cast<std::uint64_t*>(ws_reader_->length_mask_buffer.data()));
-                    if (ws_reader_->has_mask) {
-                        memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data() + 8, 4);
-                    }
-                } else {
-                    if (ws_reader_->has_mask) {
-                        memcpy(ws_reader_->mask, ws_reader_->length_mask_buffer.data(), 4);
-                    }
-                }
-                do_read_ws_payload();
-            });
     }
 
     void do_read_ws_payload() {
@@ -251,16 +246,15 @@ protected:
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
-                }
-
-                auto& payload_buffer = ws_reader_->payload_buffer;
-                if (ws_reader_->has_mask) {
-                    for (std::size_t i{0}; i < ws_reader_->length; ++i) {
-                        payload_buffer[i] ^= ws_reader_->mask[i % 4];
+                } else {
+                    auto& payload_buffer = ws_reader_->payload_buffer;
+                    if (ws_reader_->has_mask) {
+                        for (std::size_t i{0}; i < ws_reader_->length; ++i) {
+                            payload_buffer[i] ^= ws_reader_->mask[i % 4];
+                        }
                     }
+                    handle_ws();
                 }
-                handle_ws();
             });
     }
 
@@ -350,20 +344,18 @@ protected:
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
-                    return;
-                }
-
-                buffer_.consume(bytes_transferred);
-                if (buffer_.size() != 0) {
-                    do_write_ws();
-                    return;
-                }
-
-                std::unique_lock<std::mutex> lock{write_queue_mutex_};
-                write_queue_.pop();
-                if (!write_queue_.empty()) {
-                    lock.unlock();
-                    do_send_ws_frame();
+                } else {
+                    buffer_.consume(bytes_transferred);
+                    if (buffer_.size() != 0) {
+                        do_write_ws();
+                    } else {
+                        std::unique_lock<std::mutex> lock{write_queue_mutex_};
+                        write_queue_.pop();
+                        if (!write_queue_.empty()) {
+                            lock.unlock();
+                            do_send_ws_frame();
+                        }
+                    }
                 }
             });
     }
@@ -427,11 +419,10 @@ private:
                                 [this, self = this->shared_from_this()](boost::system::error_code code) {
                                     if (code) {
                                         close();
-                                        return;
+                                    } else {
+                                        has_handshake_ = true;
+                                        do_read_some();
                                     }
-
-                                    has_handshake_ = true;
-                                    do_read_some();
                                 });
     }
 

@@ -53,14 +53,11 @@ public:
 
     cookie() noexcept = default;
 
-    template <typename CookieString,
-              typename = std::enable_if_t<!std::is_same<std::decay_t<CookieString>, cookie>::value>>
-    explicit cookie(CookieString&& cookie_string) noexcept : cookie_string_{std::forward<CookieString>(cookie_string)} {
-        parse_cookie();
+    explicit cookie(std::string_view cookie_string) noexcept {
+        parse_cookie(cookie_string);
     }
 
     cookie(cookie&& rhs) noexcept {
-        cookie_string_ = std::move(rhs.cookie_string_);
         name_ = std::move(rhs.name_);
         value_ = std::move(rhs.value_);
         options_ = std::move(rhs.options_);
@@ -70,7 +67,7 @@ public:
         if (this == &rhs) {
             return *this;
         }
-        cookie_string_ = std::move(rhs.cookie_string_);
+
         name_ = std::move(rhs.name_);
         value_ = std::move(rhs.value_);
         options_ = std::move(rhs.options_);
@@ -162,10 +159,8 @@ public:
         return os.str();
     }
 
-    template <typename CookieString>
-    void parse(CookieString&& cookie_string) {
-        cookie_string_ = std::forward<CookieString>(cookie_string);
-        parse_cookie();
+    void parse(std::string_view cookie_string) {
+        parse_cookie(cookie_string);
     }
 
     bool valid() const noexcept {
@@ -173,7 +168,6 @@ public:
     }
 
     void reset() noexcept {
-        cookie_string_.clear();
         name_.clear();
         value_.clear();
         options_.reset();
@@ -195,11 +189,11 @@ private:
         options_ = std::forward<Options>(options);
     }
 
-    void parse_cookie() {
-        assert(!cookie_string_.empty());
+    void parse_cookie(std::string_view cookie_string) {
+        assert(!cookie_string.empty());
         using namespace std::literals;
         static const std::unordered_set<std::string_view> options_names{"path"sv, "domain"sv, "max-age"sv, "expires"sv};
-        const auto cookie_map = detail::utils::split(cookie_string_, "; ");
+        const auto cookie_map = detail::utils::split(cookie_string, "; ");
         for (const auto& cookie : cookie_map) {
             const auto key_value = detail::utils::split(cookie, "=");
             // key=value
@@ -236,7 +230,6 @@ private:
         }
     }
 
-    std::string cookie_string_;
     std::string name_;
     std::string value_;
     options options_;
@@ -291,9 +284,8 @@ public:
         cookies_.emplace_back(std::move(temp));
     }
 
-    template <typename CookieString>
-    void parse(CookieString&& cookie_string) {
-        cookie_.parse(std::forward<CookieString>(cookie_string));
+    void parse(std::string_view cookie_string) {
+        cookie_.parse(cookie_string);
     }
 
     const std::vector<cookie>& get() const noexcept {

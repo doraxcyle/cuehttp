@@ -111,10 +111,11 @@ private:
 
     template <typename Func>
     void use_without_next(Func&& func) {
-        middlewares_.emplace_back(std::bind(&middlewares::call_with_next, this,
-                                            // for operator std::function<void(context&)>
-                                            static_cast<std::function<void(context&)>>(func), std::placeholders::_1,
-                                            std::placeholders::_2));
+        middlewares_.emplace_back(
+            [func = static_cast<std::function<void(context&)>>(func)](context& ctx, std::function<void()> next) {
+                func(ctx);
+                next();
+            });
     }
 
     template <typename T, typename Func, typename Self>
@@ -127,11 +128,6 @@ private:
             }
             next();
         });
-    }
-
-    void call_with_next(std::function<void(context&)> func, context& ctx, std::function<void()> next) {
-        func(ctx);
-        next();
     }
 
     void compose() noexcept {

@@ -363,14 +363,14 @@ private:
             if (ctx.status() != 404) {
                 return;
             }
-            const std::string key{detail::utils::to_lower(ctx.method()) + "+" + prefix_ +
-                                  detail::utils::to_lower(ctx.path())};
+            std::string key{detail::utils::to_lower(ctx.method())};
+            key.append("+");
+            key.append(prefix_);
+            key.append(detail::utils::to_lower(ctx.path()));
             const auto it = handlers_.find(key);
             if (it != handlers_.end()) {
                 it->second(ctx);
-                return;
             }
-            ctx.status(404);
         };
     }
 

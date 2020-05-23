@@ -50,7 +50,6 @@ public:
 
     void status(unsigned status) {
         status_ = status;
-        message_ = std::string{detail::utils::get_message_for_status(status)};
     }
 
     template <typename Msg>
@@ -79,15 +78,16 @@ public:
 
     template <typename Field, typename Value>
     void set(Field&& field, Value&& value) {
-        headers_.emplace(std::forward<Field>(field), std::forward<Value>(value));
+        headers_.emplace_back(std::make_pair(std::forward<Field>(field), std::forward<Value>(value)));
     }
 
     void set(const std::map<std::string, std::string>& headers) {
-        headers_.insert(headers.begin(), headers.end());
+        headers_.insert(headers_.end(), headers.begin(), headers.end());
     }
 
     void set(std::map<std::string, std::string>&& headers) {
-        headers_.insert(std::make_move_iterator(headers.begin()), std::make_move_iterator(headers.end()));
+        headers_.insert(headers_.end(), std::make_move_iterator(headers.begin()),
+                        std::make_move_iterator(headers.end()));
     }
 
     void remove(std::string_view field) noexcept {
@@ -168,12 +168,13 @@ public:
     void reset() {
         headers_.clear();
         status_ = 404;
-        message_ = "Not Found";
+        message_.clear();
         keepalive_ = false;
         content_length_ = 0;
         cookies_.reset();
         body_.clear();
         valid_ = true;
+        response_str_.clear();
         stream_.reset();
     }
 
@@ -183,14 +184,31 @@ public:
 
     std::string to_string() {
         std::string str;
-        str.append("HTTP/" + std::to_string(major_version_) + "." + std::to_string(minor_version_) + " " +
-                   std::to_string(status_) + " " + message_ + "\r\n");
+        str.reserve(2048);
+        str.append("HTTP/");
+        str.append(std::to_string(major_version_));
+        str.append(".");
+        str.append(std::to_string(minor_version_));
+        str.append(" ");
+        str.append(std::to_string(status_));
+        str.append(" ");
+        if (message_.empty()) {
+            str.append(message_);
+        } else {
+            auto message = detail::utils::get_message_for_status(status_);
+            str.append(message.data(), message.size());
+        }
+
+        str.append("\r\n");
 
         // headers
         str.append("Server: cuehttp\r\n");
         // str.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
         for (const auto& header : headers_) {
-            str.append(header.first + ": " + header.second + "\r\n");
+            str.append(header.first);
+            str.append(": ");
+            str.append(header.second);
+            str.append("\r\n");
         }
 
         if (get("Connection").empty() && !keepalive_) {
@@ -201,7 +219,9 @@ public:
         const auto& cookies = cookies_.get();
         for (const auto& cookie : cookies) {
             if (cookie.valid()) {
-                str.append("Set-Cookie: " + cookie.to_string() + "\r\n");
+                str.append("Set-Cookie: ");
+                str.append(cookie.to_string());
+                str.append("\r\n");
             }
         }
 
@@ -209,7 +229,9 @@ public:
             // chunked
             str.append("\r\n");
         } else {
-            str.append("Content-Length: " + std::to_string(content_length_) + "\r\n\r\n");
+            str.append("Content-Length: ");
+            str.append(std::to_string(content_length_));
+            str.append("\r\n\r\n");
             str.append(body_);
         }
 
@@ -259,15 +281,16 @@ private:
         return os.str();
     }
 
-    std::map<std::string, std::string> headers_;
+    std::vector<std::pair<std::string, std::string>> headers_;
     unsigned major_version_{1};
     unsigned minor_version_{1};
     unsigned status_{404};
-    std::string message_{"Not Found"};
+    std::string message_;
     bool keepalive_{false};
     std::uint64_t content_length_{0};
     cookies& cookies_;
     std::string body_;
+    std::string response_str_;
     bool valid_{true};
     detail::reply_handler reply_handler_;
     std::shared_ptr<std::ostream> stream_{nullptr};

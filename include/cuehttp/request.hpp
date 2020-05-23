@@ -57,7 +57,7 @@ public:
         return ""sv;
     }
 
-    const std::map<std::string, std::string>& headers() const noexcept {
+    const std::map<std::string_view, std::string_view>& headers() const noexcept {
         return headers_;
     }
 
@@ -86,7 +86,7 @@ public:
 
     std::string_view href() const noexcept {
         if (href_.empty()) {
-            href_ = std::string{origin()} + url_;
+            href_ = std::string{origin()} + std::string{url_};
         }
         return href_;
     }
@@ -138,11 +138,17 @@ public:
     }
 
     int parse(std::size_t size) noexcept {
-        return llhttp_execute(&parser_, buffer_.data(), size);
-    }
-
-    bool has_more_requests() const noexcept {
-        return has_more_requests_;
+        std::cout << std::string_view{buffer_.data(), size} << std::endl;
+        const auto code = llhttp_execute(&parser_, buffer_.data(), size);
+        std::cout << size << " : " << code << std::endl;
+        // code 21 for websocket
+        if (code == 0 || code == 21) {
+            return 1;
+        } else if (code >= 4 && code <= 14) {
+            return -1;
+        } else {
+            return -2;
+        }
     }
 
     bool websocket() const noexcept {
@@ -150,8 +156,6 @@ public:
     }
 
     void reset() noexcept {
-        has_more_requests_ = true;
-        url_.clear();
         origin_.clear();
         href_.clear();
         query_.clear();
@@ -160,11 +164,6 @@ public:
         keepalive_ = false;
         websocket_ = false;
         cookies_.reset();
-        body_.clear();
-        body_.shrink_to_fit();
-        field_.clear();
-        value_.clear();
-        headers_.clear();
     }
 
 private:
@@ -192,34 +191,31 @@ private:
 
     static int on_url(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->url_.append(at, length);
+        self->url_ = std::string_view{at, length};
         self->parse_url();
         return 0;
     }
 
     static int on_header_field(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->field_.assign(at, length);
+        self->field_ = std::string_view{at, length};
         return 0;
     }
 
     static int on_header_value(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->value_.assign(at, length);
+        self->value_ = std::string_view{at, length};
         // add header
         if (!self->field_.empty() && !self->value_.empty()) {
             self->headers_.emplace(self->field_, self->value_);
         }
-        self->field_.clear();
-        self->value_.clear();
+        self->field_ = std::string_view{};
+        self->value_ = std::string_view{};
         return 0;
     }
 
     static int on_headers_complete(llhttp_t* parser) {
         request* self{static_cast<request*>(parser->data)};
-
-        self->field_.clear();
-        self->value_.clear();
 
         // version
         self->major_version_ = parser->http_major;
@@ -252,9 +248,7 @@ private:
             const auto connection = self->get("Connection");
             if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
                 self->keepalive_ = true;
-            }
-
-            if (parser->method == llhttp_method::HTTP_GET && detail::utils::iequals(connection, "Upgrade")) {
+            } else if (parser->method == llhttp_method::HTTP_GET && detail::utils::iequals(connection, "Upgrade")) {
                 const auto upgrade = self->get("Upgrade");
                 const auto key = self->get("Sec-WebSocket-Key");
                 const auto ws_version = self->get("Sec-WebSocket-Version");
@@ -266,9 +260,9 @@ private:
         }
 
         // cookie
-        const std::string cookie_string{self->get("Cookie")};
+        const auto cookie_string = self->get("Cookie");
         if (!cookie_string.empty()) {
-            self->cookies_.parse(std::move(cookie_string));
+            self->cookies_.parse(cookie_string);
         }
 
         return 0;
@@ -276,13 +270,13 @@ private:
 
     static int on_body(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->body_.append(at, length);
+        self->body_ = std::string_view{at, length};
+        std::cout << self->body_ << std::endl;
         return 0;
     }
 
     static int on_message_complete(llhttp_t* parser) {
-        request* self{static_cast<request*>(parser->data)};
-        self->has_more_requests_ = false;
+        // request* self{static_cast<request*>(parser->data)};
         return 0;
     }
 
@@ -324,12 +318,11 @@ private:
     bool https_{false};
     llhttp_t parser_;
     llhttp_settings_t parser_settings_;
-    bool has_more_requests_{true};
     unsigned major_version_{1};
     unsigned minor_version_{1};
     std::string_view host_;
     std::string_view hostname_;
-    std::string url_;
+    std::string_view url_;
     mutable std::string origin_;
     mutable std::string href_;
     std::string_view path_;
@@ -343,10 +336,10 @@ private:
     bool keepalive_{false};
     bool websocket_{false};
     cookies& cookies_;
-    std::string body_;
-    std::string field_;
-    std::string value_;
-    std::map<std::string, std::string> headers_;
+    std::string_view body_;
+    std::string_view field_;
+    std::string_view value_;
+    std::map<std::string_view, std::string_view> headers_;
 };
 
 } // namespace http
