@@ -115,7 +115,7 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
         }
         if (!ctx.res().has("Content-Type")) {
             const auto ext_str = real_path.extension().string();
-            const auto it = options.mime_types.find(ext_str);
+            const auto it = options.mime_types.find(utils::to_lower(ext_str));
             if (it != options.mime_types.end()) {
                 ctx.type(it->second);
             } else {
