@@ -41,6 +41,7 @@ struct options final {
     std::vector<std::string> extensions;
     std::uint64_t chunked_threshold{5 * 1024 * 1024};
     bool cross_domain{false};
+    std::map<std::string, std::string> mime_types;
 #ifdef ENABLE_GZIP
     bool gzip{true};
     std::uint64_t gzip_threshold{2048};
@@ -113,7 +114,13 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
             ctx.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
         }
         if (!ctx.res().has("Content-Type")) {
-            ctx.type(get_mime(real_path.extension().string()));
+            const auto ext_str = real_path.extension().string();
+            const auto it = options.mime_types.find(ext_str);
+            if (it != options.mime_types.end()) {
+                ctx.type(it->second);
+            } else {
+                ctx.type(get_mime(ext_str));
+            }
         }
         ctx.status(200);
         if (static_cast<std::uint64_t>(file_size) >= options.chunked_threshold) {

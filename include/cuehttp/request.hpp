@@ -138,9 +138,7 @@ public:
     }
 
     int parse(std::size_t size) noexcept {
-        std::cout << std::string_view{buffer_.data(), size} << std::endl;
         const auto code = llhttp_execute(&parser_, buffer_.data(), size);
-        std::cout << size << " : " << code << std::endl;
         // code 21 for websocket
         if (code == 0 || code == 21) {
             return 1;
@@ -271,7 +269,6 @@ private:
     static int on_body(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->body_ = std::string_view{at, length};
-        std::cout << self->body_ << std::endl;
         return 0;
     }
 

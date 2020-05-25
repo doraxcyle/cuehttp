@@ -34,6 +34,7 @@ struct options final {
     std::string index;
     std::vector<std::string> extensions;
     bool cross_domain{false};
+    std::map<std::string, std::string> mime_types;
 #ifdef ENABLE_GZIP
     bool gzip{true};
     std::uint64_t gzip_threshold{2048};
