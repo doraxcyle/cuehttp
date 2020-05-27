@@ -21,6 +21,7 @@
 #define CUEHTTP_REQUEST_HPP_
 
 #include <memory>
+#include <vector>
 
 #include "cuehttp/response.hpp"
 #include "cuehttp/cookies.hpp"
@@ -31,11 +32,10 @@
 namespace cue {
 namespace http {
 
-constexpr unsigned HTTP_REQUEST_BUFFER_SIZE{2048};
-
 class request final : safe_noncopyable {
 public:
-    request(bool https, cookies& cookies) noexcept : https_{https}, cookies_{cookies} {
+    request(bool https, cookies& cookies) noexcept
+        : buffer_(HTTP_REQUEST_BUFFER_SIZE), https_{https}, cookies_{cookies} {
         init_parser();
     }
 
@@ -107,7 +107,7 @@ public:
     }
 
     std::string_view search() const noexcept {
-        if (search_.empty()) {
+        if (search_.empty() && !querystring_.empty()) {
             search_ = std::string{"?"} + std::string{querystring_};
         }
         return search_;
@@ -133,18 +133,22 @@ public:
         return body_;
     }
 
-    std::array<char, HTTP_REQUEST_BUFFER_SIZE>& buffer() noexcept {
-        return buffer_;
+    std::pair<char*, std::size_t> buffer() noexcept {
+        return std::make_pair(buffer_.data() + buffer_offset_, buffer_.size() - buffer_offset_);
     }
 
     int parse(std::size_t size) noexcept {
-        const auto code = llhttp_execute(&parser_, buffer_.data(), size);
+        auto code = llhttp_execute(&parser_, buffer_.data() + buffer_offset_, size);
+        if (!finished_) {
+            code = HPE_USER;
+        }
         // code 21 for websocket
         if (code == 0 || code == 21) {
             return 1;
         } else if (code >= 4 && code <= 14) {
             return -1;
         } else {
+            buffer_.resize(buffer_.size() * 2);
             return -2;
         }
     }
@@ -154,6 +158,11 @@ public:
     }
 
     void reset() noexcept {
+        if (buffer_.size() != HTTP_REQUEST_BUFFER_SIZE) {
+            buffer_.resize(HTTP_REQUEST_BUFFER_SIZE);
+        }
+        buffer_offset_ = 0;
+        finished_ = false;
         origin_.clear();
         href_.clear();
         query_.clear();
@@ -174,8 +183,8 @@ private:
         parser_settings_.on_headers_complete = &request::on_headers_complete;
         parser_settings_.on_body = &request::on_body;
         parser_settings_.on_message_complete = &request::on_message_complete;
-        parser_settings_.on_chunk_header = &request::on_chunk_header;
-        parser_settings_.on_chunk_complete = &request::on_chunk_complete;
+        // parser_settings_.on_chunk_header = &request::on_chunk_header;
+        // parser_settings_.on_chunk_complete = &request::on_chunk_complete;
 
         llhttp_init(&parser_, HTTP_REQUEST, &parser_settings_);
         parser_.data = this;
@@ -242,18 +251,13 @@ private:
         }
 
         // keepalive/websocket
-        if (self->minor_version_ == 1) {
-            const auto connection = self->get("Connection");
-            if (connection.empty() || detail::utils::iequals(connection, "keep-alive")) {
-                self->keepalive_ = true;
-            } else if (parser->method == llhttp_method::HTTP_GET && detail::utils::iequals(connection, "Upgrade")) {
-                const auto upgrade = self->get("Upgrade");
-                const auto key = self->get("Sec-WebSocket-Key");
-                const auto ws_version = self->get("Sec-WebSocket-Version");
-                if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
-                    self->keepalive_ = true;
-                    self->websocket_ = true;
-                }
+        self->keepalive_ = llhttp_should_keep_alive(&self->parser_);
+        if (self->keepalive_ && self->parser_.upgrade) {
+            const auto upgrade = self->get("Upgrade");
+            const auto key = self->get("Sec-WebSocket-Key");
+            const auto ws_version = self->get("Sec-WebSocket-Version");
+            if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
+                self->websocket_ = true;
             }
         }
 
@@ -273,19 +277,20 @@ private:
     }
 
     static int on_message_complete(llhttp_t* parser) {
-        // request* self{static_cast<request*>(parser->data)};
+        request* self{static_cast<request*>(parser->data)};
+        self->finished_ = true;
         return 0;
     }
 
-    static int on_chunk_header(llhttp_t* parser) {
-        // request* self{static_cast<request*>(parser->data)};
-        return 0;
-    }
+    // static int on_chunk_header(llhttp_t* parser) {
+    //     request* self{static_cast<request*>(parser->data)};
+    //     return 0;
+    // }
 
-    static int on_chunk_complete(llhttp_t* parser) {
-        // request* self{static_cast<request*>(parser->data)};
-        return 0;
-    }
+    // static int on_chunk_complete(llhttp_t* parser) {
+    //     request* self{static_cast<request*>(parser->data)};
+    //     return 0;
+    // }
 
     void parse_url() {
         http_parser_url url_parser;
@@ -311,10 +316,13 @@ private:
         }
     }
 
-    std::array<char, HTTP_REQUEST_BUFFER_SIZE> buffer_;
+    constexpr static std::size_t HTTP_REQUEST_BUFFER_SIZE{2048};
+    std::vector<char> buffer_;
+    std::size_t buffer_offset_{0};
     bool https_{false};
     llhttp_t parser_;
     llhttp_settings_t parser_settings_;
+    bool finished_{false};
     unsigned major_version_{1};
     unsigned minor_version_{1};
     std::string_view host_;

@@ -82,8 +82,9 @@ protected:
     }
 
     void do_read_some() {
+        auto buffer = context_.req().buffer();
         socket_.async_read_some(
-            boost::asio::buffer(context_.req().buffer()),
+            boost::asio::buffer(buffer.first, buffer.second),
             [this, self = this->shared_from_this()](boost::system::error_code code, std::size_t bytes_transferred) {
                 if (code) {
                     close();
