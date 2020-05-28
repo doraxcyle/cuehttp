@@ -90,14 +90,23 @@ protected:
                     close();
                 } else {
                     const auto parse_code = context_.req().parse(bytes_transferred);
-                    // > 0 success
+                    // std::cout << "parse code: " << parse_code << std::endl;
+                    // =  0 success
+                    // =  1 pipeline
                     // = -1 error
                     // = -2 not complete
-                    if (parse_code > 0) {
+                    switch (parse_code) {
+                    case 0:
+                        // std::cout << "------------" << std::endl;
                         handle_and_reply();
-                    } else if (parse_code == -1) {
+                        break;
+                    case 1:
+                        break;
+                    case -1:
                         reply_error(400);
-                    } else {
+                        break;
+                    case -2:
+                    default:
                         do_read();
                     }
                 }

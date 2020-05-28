@@ -138,19 +138,26 @@ public:
     }
 
     int parse(std::size_t size) noexcept {
+        data_size_ += size;
         auto code = llhttp_execute(&parser_, buffer_.data() + buffer_offset_, size);
         if (!finished_) {
             code = HPE_USER;
         }
-        // code 21 for websocket
-        if (code == 0 || code == 21) {
+        // code 22 for websocket
+        switch (code) {
+        case 0:
+        case 22: // websocket
+            return 0;
+        case 21: // pipeline
             return 1;
-        } else if (code >= 4 && code <= 14) {
-            return -1;
-        } else {
-            buffer_.resize(buffer_.size() * 2);
+        case 23: // not complete
+            expand();
             return -2;
+        default: // error
+            break;
         }
+
+        return -1;
     }
 
     bool websocket() const noexcept {
@@ -171,6 +178,8 @@ public:
         keepalive_ = false;
         websocket_ = false;
         cookies_.reset();
+        body_.clear();
+        headers_.clear();
     }
 
 private:
@@ -183,8 +192,6 @@ private:
         parser_settings_.on_headers_complete = &request::on_headers_complete;
         parser_settings_.on_body = &request::on_body;
         parser_settings_.on_message_complete = &request::on_message_complete;
-        // parser_settings_.on_chunk_header = &request::on_chunk_header;
-        // parser_settings_.on_chunk_complete = &request::on_chunk_complete;
 
         llhttp_init(&parser_, HTTP_REQUEST, &parser_settings_);
         parser_.data = this;
@@ -272,25 +279,15 @@ private:
 
     static int on_body(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
-        self->body_ = std::string_view{at, length};
+        self->body_.append(at, length);
         return 0;
     }
 
-    static int on_message_complete(llhttp_t* parser) {
+    static int on_message_complete(llhttp_t* parser, const char* at, std::size_t length) {
         request* self{static_cast<request*>(parser->data)};
         self->finished_ = true;
         return 0;
     }
-
-    // static int on_chunk_header(llhttp_t* parser) {
-    //     request* self{static_cast<request*>(parser->data)};
-    //     return 0;
-    // }
-
-    // static int on_chunk_complete(llhttp_t* parser) {
-    //     request* self{static_cast<request*>(parser->data)};
-    //     return 0;
-    // }
 
     void parse_url() {
         http_parser_url url_parser;
@@ -316,9 +313,34 @@ private:
         }
     }
 
+    void expand() {
+        const char* data{buffer_.data()};
+        buffer_offset_ = buffer_.size();
+        buffer_.resize(buffer_.size() * 2);
+        std::map<std::string_view, std::string_view> headers;
+        for (const auto& header : headers_) {
+            headers.emplace(std::string_view{buffer_.data() + (header.first.data() - data), header.first.length()},
+                            std::string_view{buffer_.data() + (header.second.data() - data), header.second.length()});
+        }
+        headers.swap(headers_);
+
+        if (!url_.empty()) {
+            url_ = std::string_view{buffer_.data() + (url_.data() - data), url_.length()};
+        }
+
+        if (!path_.empty()) {
+            path_ = std::string_view{buffer_.data() + (path_.data() - data), path_.length()};
+        }
+
+        if (!querystring_.empty()) {
+            querystring_ = std::string_view{buffer_.data() + (querystring_.data() - data), querystring_.length()};
+        }
+    }
+
     constexpr static std::size_t HTTP_REQUEST_BUFFER_SIZE{2048};
     std::vector<char> buffer_;
     std::size_t buffer_offset_{0};
+    std::size_t data_size_{0};
     bool https_{false};
     llhttp_t parser_;
     llhttp_settings_t parser_settings_;
@@ -341,7 +363,7 @@ private:
     bool keepalive_{false};
     bool websocket_{false};
     cookies& cookies_;
-    std::string_view body_;
+    std::string body_;
     std::string_view field_;
     std::string_view value_;
     std::map<std::string_view, std::string_view> headers_;
