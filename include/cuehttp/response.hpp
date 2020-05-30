@@ -158,7 +158,7 @@ public:
 
     std::ostream& body() {
         assert(reply_handler_);
-        valid_ = false;
+        is_stream_ = true;
         reply_handler_(header_to_string());
         stream_ =
             std::static_pointer_cast<std::ostream>(std::make_shared<detail::body_ostream>(chunked(), reply_handler_));
@@ -173,13 +173,13 @@ public:
         content_length_ = 0;
         cookies_.reset();
         body_.clear();
-        valid_ = true;
+        is_stream_ = false;
         response_str_.clear();
         stream_.reset();
     }
 
-    bool valid() const noexcept {
-        return valid_;
+    bool is_stream() const noexcept {
+        return is_stream_;
     }
 
     std::string to_string() {
@@ -291,7 +291,7 @@ private:
     cookies& cookies_;
     std::string body_;
     std::string response_str_;
-    bool valid_{true};
+    bool is_stream_{false};
     detail::reply_handler reply_handler_;
     std::shared_ptr<std::ostream> stream_{nullptr};
 };

@@ -138,7 +138,6 @@ public:
     }
 
     int parse(std::size_t size) noexcept {
-        data_size_ += size;
         auto code = llhttp_execute(&parser_, buffer_.data() + buffer_offset_, size);
         if (!finished_) {
             code = HPE_USER;
@@ -340,7 +339,6 @@ private:
     constexpr static std::size_t HTTP_REQUEST_BUFFER_SIZE{2048};
     std::vector<char> buffer_;
     std::size_t buffer_offset_{0};
-    std::size_t data_size_{0};
     bool https_{false};
     llhttp_t parser_;
     llhttp_settings_t parser_settings_;

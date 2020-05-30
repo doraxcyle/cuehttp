@@ -90,14 +90,12 @@ protected:
                     close();
                 } else {
                     const auto parse_code = context_.req().parse(bytes_transferred);
-                    // std::cout << "parse code: " << parse_code << std::endl;
                     // =  0 success
                     // =  1 pipeline
                     // = -1 error
                     // = -2 not complete
                     switch (parse_code) {
                     case 0:
-                        // std::cout << "------------" << std::endl;
                         handle_and_reply();
                         break;
                     case 1:
@@ -121,7 +119,7 @@ protected:
 
     void handle_and_reply() {
         handle();
-        if (context_.res().valid()) {
+        if (!context_.res().is_stream()) {
             reply();
         }
     }
