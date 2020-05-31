@@ -53,6 +53,11 @@ public:
         return *websocket_;
     }
 
+    std::shared_ptr<class websocket> websocket_ptr() {
+        make_ws();
+        return websocket_;
+    }
+
     // request
     const std::map<std::string_view, std::string_view>& headers() const noexcept {
         return request_.headers();

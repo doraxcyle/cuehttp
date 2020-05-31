@@ -128,7 +128,7 @@ public:
     void do_accept_real() {
         auto connector =
             std::make_shared<detail::connection<Socket>>(this->handler_, detail::engines::default_engines().get());
-        this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
+        this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
             if (!this->acceptor_->is_open()) {
                 return;
             }
@@ -173,7 +173,7 @@ public:
     void do_accept_real() {
         auto connector = std::make_shared<detail::connection<detail::https_socket>>(
             this->handler_, detail::engines::default_engines().get(), ssl_context_);
-        this->acceptor_->async_accept(connector->socket(), [this, connector](boost::system::error_code code) {
+        this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
             if (!this->acceptor_->is_open()) {
                 return;
             }

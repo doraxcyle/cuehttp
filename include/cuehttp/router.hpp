@@ -50,37 +50,37 @@ public:
 
     template <typename... Args>
     router& del(std::string_view path, Args&&... args) {
-        register_impl("del", path, std::forward<Args>(args)...);
+        register_impl("DEL", path, std::forward<Args>(args)...);
         return *this;
     }
 
     template <typename... Args>
     router& get(std::string_view path, Args&&... args) {
-        register_impl("get", path, std::forward<Args>(args)...);
+        register_impl("GET", path, std::forward<Args>(args)...);
         return *this;
     }
 
     template <typename... Args>
     router& head(std::string_view path, Args&&... args) {
-        register_impl("head", path, std::forward<Args>(args)...);
+        register_impl("HEAD", path, std::forward<Args>(args)...);
         return *this;
     }
 
     template <typename... Args>
     router& post(std::string_view path, Args&&... args) {
-        register_impl("post", path, std::forward<Args>(args)...);
+        register_impl("POST", path, std::forward<Args>(args)...);
         return *this;
     }
 
     template <typename... Args>
     router& put(std::string_view path, Args&&... args) {
-        register_impl("put", path, std::forward<Args>(args)...);
+        register_impl("PUT", path, std::forward<Args>(args)...);
         return *this;
     }
 
     template <typename... Args>
     router& all(std::string_view path, Args&&... args) {
-        static const std::vector<std::string> methods{"del", "get", "head", "post", "put"};
+        static const std::vector<std::string> methods{"DEL", "GET", "HEAD", "POST", "PUT"};
         for (std::string method : methods) {
             register_impl(std::move(method), path, std::forward<Args>(args)...);
         }
@@ -363,7 +363,7 @@ private:
             if (ctx.status() != 404) {
                 return;
             }
-            std::string key{detail::utils::to_lower(ctx.method())};
+            std::string key{ctx.method()};
             key.append("+");
             key.append(prefix_);
             key.append(detail::utils::to_lower(ctx.path()));

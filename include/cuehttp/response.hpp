@@ -182,60 +182,59 @@ public:
         return is_stream_;
     }
 
-    std::string to_string() {
-        std::string str;
-        str.reserve(2048);
-        str.append("HTTP/");
-        str.append(std::to_string(major_version_));
-        str.append(".");
-        str.append(std::to_string(minor_version_));
-        str.append(" ");
-        str.append(std::to_string(status_));
-        str.append(" ");
+    const std::string& to_string() {
+        response_str_.reserve(2048);
+        response_str_.append("HTTP/");
+        response_str_.append(std::to_string(major_version_));
+        response_str_.append(".");
+        response_str_.append(std::to_string(minor_version_));
+        response_str_.append(" ");
+        response_str_.append(std::to_string(status_));
+        response_str_.append(" ");
         if (message_.empty()) {
-            str.append(message_);
+            response_str_.append(message_);
         } else {
             auto message = detail::utils::get_message_for_status(status_);
-            str.append(message.data(), message.size());
+            response_str_.append(message.data(), message.size());
         }
 
-        str.append("\r\n");
+        response_str_.append("\r\n");
 
         // headers
-        str.append("Server: cuehttp\r\n");
-        // str.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
+        response_str_.append("Server: cuehttp\r\n");
+        // response_str_.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
         for (const auto& header : headers_) {
-            str.append(header.first);
-            str.append(": ");
-            str.append(header.second);
-            str.append("\r\n");
+            response_str_.append(header.first);
+            response_str_.append(": ");
+            response_str_.append(header.second);
+            response_str_.append("\r\n");
         }
 
-        if (get("Connection").empty() && !keepalive_) {
-            str.append("Connection: close\r\n");
+        if (!keepalive_) {
+            response_str_.append("Connection: close\r\n");
         }
 
         // cookies
         const auto& cookies = cookies_.get();
         for (const auto& cookie : cookies) {
             if (cookie.valid()) {
-                str.append("Set-Cookie: ");
-                str.append(cookie.to_string());
-                str.append("\r\n");
+                response_str_.append("Set-Cookie: ");
+                response_str_.append(cookie.to_string());
+                response_str_.append("\r\n");
             }
         }
 
         if (chunked()) {
             // chunked
-            str.append("\r\n");
+            response_str_.append("\r\n");
         } else {
-            str.append("Content-Length: ");
-            str.append(std::to_string(content_length_));
-            str.append("\r\n\r\n");
-            str.append(body_);
+            response_str_.append("Content-Length: ");
+            response_str_.append(std::to_string(content_length_));
+            response_str_.append("\r\n\r\n");
+            response_str_.append(body_);
         }
 
-        return str;
+        return response_str_;
     }
 
 private:

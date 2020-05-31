@@ -68,6 +68,8 @@ class context;
 
 namespace detail {
 
+class http_parser;
+
 struct ws_frame;
 
 // types
@@ -120,7 +122,7 @@ struct utils final : safe_noncopyable {
         return duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    constexpr static std::string_view to_method_string(unsigned method) noexcept {
+    static constexpr std::string_view to_method_string(unsigned method) noexcept {
         using namespace std::literals;
         switch (method) {
         case llhttp_method::HTTP_DELETE:
@@ -229,7 +231,7 @@ struct utils final : safe_noncopyable {
         return query;
     }
 
-    constexpr static std::string_view get_message_for_status(unsigned status) noexcept {
+    static constexpr std::string_view get_message_for_status(unsigned status) noexcept {
         using namespace std::literals;
         switch (status) {
         case 100:
