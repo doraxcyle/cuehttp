@@ -25,6 +25,7 @@
 #include <functional>
 #include <chrono>
 #include <map>
+#include <unordered_map>
 #include <sstream>
 #include <vector>
 #include <string>
