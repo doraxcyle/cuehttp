@@ -287,7 +287,7 @@ private:
 
     template <typename Func>
     void register_with_next(std::string&& method, std::string_view path, Func&& func) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)),
+        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}),
                           [func = std::forward<Func>(func)](context& ctx) {
                               const auto next = []() {};
                               func(ctx, std::move(next));
@@ -296,32 +296,30 @@ private:
 
     template <typename T, typename Func, typename Self>
     void register_with_next(std::string&& method, std::string_view path, Func T::*func, Self self) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)),
-                          [func, self](context& ctx) {
-                              const auto next = []() {};
-                              if (self) {
-                                  (self->*func)(ctx, std::move(next));
-                              } else {
-                                  (T{}.*func)(ctx, std::move(next));
-                              }
-                          });
+        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
+            const auto next = []() {};
+            if (self) {
+                (self->*func)(ctx, std::move(next));
+            } else {
+                (T{}.*func)(ctx, std::move(next));
+            }
+        });
     }
 
     template <typename Func>
     void register_without_next(std::string&& method, std::string_view path, Func&& func) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)), std::forward<Func>(func));
+        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), std::forward<Func>(func));
     }
 
     template <typename T, typename Func, typename Self>
     void register_without_next(std::string&& method, std::string_view path, Func T::*func, Self self) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + detail::utils::to_lower(path)),
-                          [func, self](context& ctx) {
-                              if (self) {
-                                  (self->*func)(ctx);
-                              } else {
-                                  (T{}.*func)(ctx);
-                              }
-                          });
+        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
+            if (self) {
+                (self->*func)(ctx);
+            } else {
+                (T{}.*func)(ctx);
+            }
+        });
     }
 
     template <typename Destination>
@@ -355,7 +353,7 @@ private:
 
             handlers[0](ctx, next);
         };
-        handlers_.emplace(method + "+" + prefix_ + detail::utils::to_lower(path), std::move(handler));
+        handlers_.emplace(method + "+" + prefix_ + std::string{path}, std::move(handler));
     }
 
     std::function<void(context&)> make_routes() const noexcept {
@@ -366,7 +364,7 @@ private:
             std::string key{ctx.method()};
             key.append("+");
             key.append(prefix_);
-            key.append(detail::utils::to_lower(ctx.path()));
+            key.append(std::string{ctx.path()});
             const auto it = handlers_.find(key);
             if (it != handlers_.end()) {
                 it->second(ctx);

@@ -91,14 +91,11 @@ protected:
                                     } else {
                                         const auto parse_code = parser_.parse(bytes_transferred);
                                         // =  0 success
-                                        // =  1 pipeline
                                         // = -1 error
                                         // = -2 not complete
                                         switch (parse_code) {
                                         case 0:
                                             handle_and_reply();
-                                            break;
-                                        case 1:
                                             break;
                                         case -1:
                                             reply_error(400);
@@ -112,15 +109,13 @@ protected:
     }
 
     void reply_error(unsigned status) {
-        std::string reply_str = make_reply_str(status);
-        std::vector<boost::asio::const_buffer> buffers{boost::asio::buffer(reply_str)};
-        reply(buffers, false);
+        reply(make_reply_str(status), false);
     }
 
     void handle_and_reply() {
         assert(handler_);
-        std::vector<boost::asio::const_buffer> buffers;
-        buffers.reserve(parser_.contexts().size());
+        std::string buffers;
+        buffers.reserve(2048);
         bool is_close{false};
         for (auto& ctx : parser_.contexts()) {
             handler_(*ctx);
@@ -135,7 +130,7 @@ protected:
             }
             is_close = is_close || !res.keepalive();
             if (!res.is_stream()) {
-                buffers.emplace_back(boost::asio::buffer(res.to_string()));
+                buffers.append(res.to_string());
             }
         }
         if (!buffers.empty()) {
@@ -143,8 +138,8 @@ protected:
         }
     }
 
-    void reply(const std::vector<boost::asio::const_buffer>& buffers, bool is_close) {
-        boost::asio::async_write(socket_, buffers,
+    void reply(const std::string& buffers, bool is_close) {
+        boost::asio::async_write(socket_, boost::asio::buffer(buffers),
                                  [is_close, this, self = this->shared_from_this()](
                                      const boost::system::error_code& code, std::size_t bytes_transferred) {
                                      if (code || is_close) {

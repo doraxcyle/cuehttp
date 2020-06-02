@@ -59,7 +59,7 @@ public:
     }
 
     // request
-    const std::map<std::string_view, std::string_view>& headers() const noexcept {
+    const std::vector<std::pair<std::string_view, std::string_view>>& headers() const noexcept {
         return request_.headers();
     }
 

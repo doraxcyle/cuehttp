@@ -104,6 +104,8 @@ struct ws_frame final {
 // global variables
 constexpr std::string_view cookie_expires_date{"Thu, 01 Jan 1970 00:00:00 GMT"};
 
+constexpr std::string_view methods[] = {"DELETE", "GET", "HEAD", "POST", "PUT", "CONNECT", "OPTIONS"};
+
 // meta utilities
 template <typename T>
 using is_middleware = std::is_convertible<std::decay_t<T>, std::function<void(context&, std::function<void()>)>>;
@@ -123,26 +125,8 @@ struct utils final : safe_noncopyable {
     }
 
     static constexpr std::string_view to_method_string(unsigned method) noexcept {
-        using namespace std::literals;
-        switch (method) {
-        case llhttp_method::HTTP_DELETE:
-            return "DELETE"sv;
-            break;
-        case llhttp_method::HTTP_GET:
-            return "GET"sv;
-            break;
-        case llhttp_method::HTTP_HEAD:
-            return "HEAD"sv;
-            break;
-        case llhttp_method::HTTP_POST:
-            return "POST"sv;
-            break;
-        case llhttp_method::HTTP_PUT:
-            return "PUT"sv;
-        default:
-            break;
-        }
-        return ""sv;
+        assert(method < sizeof(methods));
+        return methods[method];
     }
 
     static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
@@ -231,128 +215,67 @@ struct utils final : safe_noncopyable {
         return query;
     }
 
-    static constexpr std::string_view get_message_for_status(unsigned status) noexcept {
+    static std::string_view get_message_for_status(unsigned status) noexcept {
         using namespace std::literals;
-        switch (status) {
-        case 100:
-            return "Continue"sv;
-        case 101:
-            return "Switching Protocols"sv;
-        case 102:
-            return "Processing"sv;
-        case 200:
-            return "OK"sv;
-        case 201:
-            return "Created"sv;
-        case 202:
-            return "Accepted"sv;
-        case 203:
-            return "Non-Authoritative Information"sv;
-        case 204:
-            return "No Content"sv;
-        case 205:
-            return "Reset Content"sv;
-        case 206:
-            return "Partial Content"sv;
-        case 207:
-            return "Multi-Status"sv;
-        case 208:
-            return "Already Reported"sv;
-        case 226:
-            return "IM Used"sv;
-        case 300:
-            return "Multiple Choices"sv;
-        case 301:
-            return "Moved Permanently"sv;
-        case 302:
-            return "Found"sv;
-        case 303:
-            return "See Other"sv;
-        case 304:
-            return "Not Modified"sv;
-        case 305:
-            return "Use Proxy"sv;
-        case 307:
-            return "Temporary Redirect"sv;
-        case 308:
-            return "Permanent Redirect"sv;
-        case 400:
-            return "Bad Request"sv;
-        case 401:
-            return "Unauthorized"sv;
-        case 402:
-            return "Payment Required"sv;
-        case 403:
-            return "Forbidden"sv;
-        case 404:
-            return "Not Found"sv;
-        case 405:
-            return "Method Not Allowed"sv;
-        case 406:
-            return "Not Acceptable"sv;
-        case 407:
-            return "Proxy Authentication Required"sv;
-        case 408:
-            return "Request Timeout"sv;
-        case 409:
-            return "Conflict"sv;
-        case 410:
-            return "Gone"sv;
-        case 411:
-            return "Length Required"sv;
-        case 412:
-            return "Precondition Failed"sv;
-        case 413:
-            return "Payload Too Large"sv;
-        case 414:
-            return "URI Too Long"sv;
-        case 415:
-            return "Unsupported Media Type"sv;
-        case 416:
-            return "Range Not Satisfiable"sv;
-        case 417:
-            return "Expectation Failed"sv;
-        case 418:
-            return "I'm a Teapot"sv;
-        case 422:
-            return "Unprocessable Entity"sv;
-        case 423:
-            return "Locked"sv;
-        case 424:
-            return "Failed Dependency"sv;
-        case 426:
-            return "Upgrade Required"sv;
-        case 428:
-            return "Precondition Required"sv;
-        case 429:
-            return "Too Many Requests"sv;
-        case 431:
-            return "Request Header Fields Too Large"sv;
-        case 500:
-            return "Internal Server Error"sv;
-        case 501:
-            return "Not Implemented"sv;
-        case 502:
-            return "Bad Gateway"sv;
-        case 503:
-            return "Service Unavailable"sv;
-        case 504:
-            return "Gateway Timeout"sv;
-        case 505:
-            return "HTTP Version Not Supported"sv;
-        case 506:
-            return "Variant Also Negotiates"sv;
-        case 507:
-            return "Insufficient Storage"sv;
-        case 508:
-            return "Loop Detected"sv;
-        case 510:
-            return "Not Extended"sv;
-        case 511:
-            return "Network Authentication Required"sv;
-        default:
-            return "???"sv;
-        }
+        static std::unordered_map<unsigned, std::string_view> messages = {{100, "Continue"sv},
+                                                                          {101, "Switching Protocols"sv},
+                                                                          {102, "Processing"sv},
+                                                                          {200, "OK"sv},
+                                                                          {201, "Created"sv},
+                                                                          {202, "Accepted"sv},
+                                                                          {203, "Non-Authoritative Information"sv},
+                                                                          {204, "No Content"sv},
+                                                                          {205, "Reset Content"},
+                                                                          {206, "Partial Content"sv},
+                                                                          {207, "Multi-Status"sv},
+                                                                          {208, "Already Reported"sv},
+                                                                          {226, "IM Used"sv},
+                                                                          {300, "Multiple Choices"sv},
+                                                                          {301, "Moved Permanently"sv},
+                                                                          {302, "Found"sv},
+                                                                          {303, "See Other"sv},
+                                                                          {304, "Not Modified"sv},
+                                                                          {305, "Use Proxy"sv},
+                                                                          {307, "Temporary Redirect"sv},
+                                                                          {308, "Permanent Redirect"sv},
+                                                                          {400, "Bad Request"sv},
+                                                                          {401, "Unauthorized"sv},
+                                                                          {402, "Payment Required"sv},
+                                                                          {403, "Forbidden"sv},
+                                                                          {404, "Not Found"sv},
+                                                                          {405, "Method Not Allowed"sv},
+                                                                          {406, "Not Acceptable"sv},
+                                                                          {407, "Proxy Authentication Required"sv},
+                                                                          {408, "Request Timeout"sv},
+                                                                          {409, "Conflict"sv},
+                                                                          {410, "Gone"sv},
+                                                                          {411, "Length Required"sv},
+                                                                          {412, "Precondition Failed"sv},
+                                                                          {413, "Request Entity Too Large"sv},
+                                                                          {414, "URI Too Long"sv},
+                                                                          {415, "Unsupported Media Type"sv},
+                                                                          {416, "Requested Range Not Satisfiable"sv},
+                                                                          {417, "Expectation Failed"sv},
+                                                                          {418, "I'm a Teapot"sv},
+                                                                          {422, "Unprocessable Entity"sv},
+                                                                          {423, "Locked"sv},
+                                                                          {424, "Failed Dependency"sv},
+                                                                          {426, "Upgrade Required"sv},
+                                                                          {428, "Precondition Required"sv},
+                                                                          {429, "Too Many Requests"sv},
+                                                                          {431, "Request Header Fields Too Large"sv},
+                                                                          {500, "Internal Server Error"sv},
+                                                                          {501, "Not Implemented"sv},
+                                                                          {502, "Bad Gateway"sv},
+                                                                          {503, "Service Unavailable"sv},
+                                                                          {504, "Gateway Timeout"sv},
+                                                                          {505, "HTTP Version Not Supported"sv},
+                                                                          {506, "Variant Also Negotiates"sv},
+                                                                          {507, "Insufficient Storage"sv},
+                                                                          {508, "Loop Detected"sv},
+                                                                          {510, "Not Extended"sv},
+                                                                          {511, "Network Authentication Required"sv}};
+        return messages[status];
     }
 
     static std::string to_gmt_string(std::time_t time) noexcept {

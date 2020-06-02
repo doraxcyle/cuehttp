@@ -55,7 +55,7 @@ public:
         return ""sv;
     }
 
-    const std::map<std::string_view, std::string_view>& headers() const noexcept {
+    const std::vector<std::pair<std::string_view, std::string_view>>& headers() const noexcept {
         return headers_;
     }
 
@@ -105,9 +105,6 @@ public:
     }
 
     std::string_view search() const noexcept {
-        if (search_.empty() && !querystring_.empty()) {
-            search_ = std::string{"?"} + std::string{querystring_};
-        }
         return search_;
     }
 
@@ -139,37 +136,22 @@ public:
         origin_.clear();
         href_.clear();
         query_.clear();
-        search_.clear();
         content_length_ = 0;
         websocket_ = false;
         keepalive_ = false;
-        cookies_.reset();
         body_.clear();
         headers_.clear();
     }
 
 private:
     void parse_url() {
-        http_parser_url url_parser;
-        http_parser_url_init(&url_parser);
-        if (http_parser_parse_url(url_.data(), url_.length(), 0, &url_parser) == 0) {
-            for (unsigned i{0}; i < UF_MAX; ++i) {
-                if ((url_parser.field_set & (1 << i)) == 0) {
-                    continue;
-                }
-
-                const std::string_view temp{url_.data() + url_parser.field_data[i].off, url_parser.field_data[i].len};
-                switch (i) {
-                case UF_PATH:
-                    path_ = temp;
-                    continue;
-                case UF_QUERY:
-                    querystring_ = temp;
-                    continue;
-                default:
-                    continue;
-                }
-            }
+        const auto pos = url_.find('?');
+        if (pos != std::string_view::npos) {
+            path_ = url_.substr(0, pos);
+            querystring_ = url_.substr(pos + 1, url_.length() - pos - 1);
+            search_ = url_.substr(pos, url_.length() - pos);
+        } else {
+            path_ = url_;
         }
     }
 
@@ -186,7 +168,7 @@ private:
     std::string_view path_;
     std::string_view querystring_;
     mutable std::multimap<std::string, std::string> query_;
-    mutable std::string search_;
+    std::string_view search_;
     std::string_view method_;
     std::string_view content_type_;
     std::string_view charset_;
@@ -195,7 +177,7 @@ private:
     bool websocket_{false};
     cookies& cookies_;
     std::string body_;
-    std::map<std::string_view, std::string_view> headers_;
+    std::vector<std::pair<std::string_view, std::string_view>> headers_;
 };
 
 } // namespace http

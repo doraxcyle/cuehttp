@@ -55,8 +55,6 @@ public:
         case 0:
         case 22: // websocket
             return 0;
-        case 21: // pipeline
-            return 1;
         case 23: // not complete
             expand();
             return -2;
@@ -124,7 +122,7 @@ private:
         // add header
         if (!self->field_.empty() && !self->value_.empty()) {
             auto& request = self->contexts_.back()->req();
-            request.headers_.emplace(self->field_, self->value_);
+            request.headers_.emplace_back(std::make_pair(self->field_, self->value_));
         }
 
         self->field_ = std::string_view{};
@@ -142,10 +140,6 @@ private:
 
         // method
         request.method_ = detail::utils::to_method_string(parser->method);
-
-        // host, hostname, origin, href
-        request.host_ = request.get("Host");
-        request.hostname_ = request.host_.substr(0, request.host_.rfind(":"));
 
         // host, hostname, origin, href
         request.host_ = request.get("Host");
@@ -207,11 +201,11 @@ private:
         buffer_.resize(buffer_.size() * 2);
         for (auto& ctx : contexts_) {
             auto& request = ctx->req();
-            std::map<std::string_view, std::string_view> headers;
+            std::vector<std::pair<std::string_view, std::string_view>> headers;
             for (const auto& header : request.headers_) {
-                headers.emplace(
+                headers.emplace_back(std::make_pair(
                     std::string_view{buffer_.data() + (header.first.data() - data), header.first.length()},
-                    std::string_view{buffer_.data() + (header.second.data() - data), header.second.length()});
+                    std::string_view{buffer_.data() + (header.second.data() - data), header.second.length()}));
             }
             headers.swap(request.headers_);
 

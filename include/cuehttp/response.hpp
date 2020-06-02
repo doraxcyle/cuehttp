@@ -171,7 +171,6 @@ public:
         message_.clear();
         keepalive_ = false;
         content_length_ = 0;
-        cookies_.reset();
         body_.clear();
         is_stream_ = false;
         response_str_.clear();
