@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     app.use(use_compress());
 #endif // ENABLE_GZIP
 
-    app.listen(10000).run();
+    app.listen(10001).run();
     // or
     // app.listen(10000);
     // cuehttp::run();

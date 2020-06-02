@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     cuehttp app;
     app.use(route.routes());
 
-    app.listen(10000).run();
+    app.listen(10001).run();
 
     return 0;
 }

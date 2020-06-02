@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     router route;
     route.get("/cookie", [](context& ctx) {
         cookie::options options;
-        options.domain = "127.0.0.1:10000";
+        options.domain = "127.0.0.1:10001";
         options.path = "/cookie";
         options.max_age = 60 * 60 * 24 * 1000;
         ctx.cookies().set("cue", "http", std::move(options));
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     cuehttp app;
     app.use(route.routes());
 
-    app.listen(10000).run();
+    app.listen(10001).run();
 
     return 0;
 }

@@ -17,23 +17,24 @@
  * under the License.
  */
 
-#include <iostream>
-#include <vector>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
     router route;
-    route.get("/plaintext", [](context& ctx) {
-        // std::cout << "body: " << ctx.req().body();
-        ctx.type("text/plain; charset=UTF-8");
-        ctx.status(200);
-        ctx.body("Hello, World!");
+    route.get("/c++.pptx", [](context& ctx) {
+        send::options opt;
+        opt.root = "C:/Users/xcyl/Desktop/";
+        send_file(ctx, "c++11.pptx", std::move(opt));
     });
+
+    route.get("/book", [](context& ctx) {
+        send_file(ctx, "C:/Users/xcyl/Desktop/C++Templates.pdf");
+    });
+
     cuehttp app;
-    app.use(route);
+    app.use(route.routes());
     app.listen(10001).run();
 
     return 0;

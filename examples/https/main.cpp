@@ -17,50 +17,26 @@
  * under the License.
  */
 
-#include <iostream>
-#include <vector>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
     cuehttp app;
-    router route;
-    app.ws().use(route.all("/get", [](context& ctx) {
-        std::cout << "5" << std::endl;
-        ctx.websocket().on_open([&ctx]() {
-            std::cout << "websocket on_open" << std::endl;
-            ctx.websocket().send("hello");
-        });
-        ctx.websocket().on_close([]() { std::cout << "websocket on_close" << std::endl; });
-        ctx.websocket().on_message([&ctx](std::string&& msg) {
-            std::cout << "websocket msg: " << msg << std::endl;
-            ctx.websocket().send(std::move(msg));
-        });
-    }));
-
-    router http_route;
-    http_route.get("/get", [](context& ctx) {
+    app.use([](context& ctx) {
         ctx.type("text/html");
         ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
         ctx.status(200);
     });
-    app.use(http_route);
 
+    // both
     auto http_server = http::create_server(app.callback());
-    http_server.listen(10000);
+    http_server.listen(10001);
 
+#ifdef ENABLE_HTTPS
     auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
     https_server.listen(443);
-
-    std::thread{[&]() {
-        for (;;) {
-            std::cout << "broadcast....." << std::endl;
-            app.ws().broadcast("broadcast.....");
-            std::this_thread::sleep_for(std::chrono::seconds{1});
-        }
-    }}.detach();
+#endif // #ifdef ENABLE_HTTPS
 
     cuehttp::run();
 
