@@ -17,10 +17,6 @@
  * under the License.
  */
 
-#include <iostream>
-#include <vector>
-#include <thread>
-
 #include <cuehttp.hpp>
 
 using namespace cue::http;
@@ -28,7 +24,7 @@ using namespace cue::http;
 int main(int argc, char** argv) {
     router route;
     route.get("/plaintext", [](context& ctx) {
-        ctx.type("text/plain; charset=UTF-8");
+        ctx.type("text/plain");
         ctx.status(200);
         ctx.body("Hello, World!");
     });
