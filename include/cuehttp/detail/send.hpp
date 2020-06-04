@@ -124,7 +124,7 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
         }
         ctx.status(200);
         if (static_cast<std::uint64_t>(file_size) >= options.chunked_threshold) {
-            ctx.set("Transfer-Encoding", "chunked");
+            ctx.chunked();
         } else {
             ctx.length(file_size);
         }

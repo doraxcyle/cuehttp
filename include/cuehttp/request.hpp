@@ -27,7 +27,6 @@
 #include "cuehttp/cookies.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/common.hpp"
-#include "cuehttp/3rd_party/llhttp.h"
 
 namespace cue {
 namespace http {
@@ -35,10 +34,6 @@ namespace http {
 class request final : safe_noncopyable {
 public:
     request(bool https, cookies& cookies) noexcept : https_{https}, cookies_{cookies} {
-    }
-
-    unsigned major_version() const noexcept {
-        return major_version_;
     }
 
     unsigned minor_version() const noexcept {
@@ -64,11 +59,12 @@ public:
     }
 
     std::string_view host() const noexcept {
-        return host_;
+        return get("Host");
     }
 
     std::string_view hostname() const noexcept {
-        return hostname_;
+        const auto host_str = host();
+        return host_str.substr(0, host_str.rfind(":"));
     }
 
     std::string_view url() const noexcept {
@@ -77,7 +73,7 @@ public:
 
     std::string_view origin() const noexcept {
         if (origin_.empty()) {
-            origin_ = https_ ? "https://" : "http://" + std::string{host_};
+            origin_ = https_ ? "https://" : "http://" + std::string{host()};
         }
         return origin_;
     }
@@ -109,19 +105,27 @@ public:
     }
 
     std::string_view type() const noexcept {
-        return content_type_;
+        std::string_view content_type{get("Content-Type")};
+        const auto pos = content_type.find("charset");
+        if (pos != std::string_view::npos) {
+            return content_type.substr(0, content_type.find(";"));
+        } else {
+            return content_type;
+        }
     }
 
     std::string_view charset() const noexcept {
-        return charset_;
+        std::string_view content_type{get("Content-Type")};
+        const auto pos = content_type.find("charset");
+        if (pos != std::string_view::npos) {
+            return content_type.substr(pos + 8);
+        } else {
+            return content_type;
+        }
     }
 
     std::uint64_t length() const noexcept {
         return content_length_;
-    }
-
-    bool keepalive() const noexcept {
-        return keepalive_;
     }
 
     bool websocket() const noexcept {
@@ -138,8 +142,6 @@ public:
         query_.clear();
         content_length_ = 0;
         websocket_ = false;
-        keepalive_ = false;
-        body_.clear();
         headers_.clear();
     }
 
@@ -158,10 +160,7 @@ private:
     friend class detail::http_parser;
 
     bool https_{false};
-    unsigned major_version_{1};
     unsigned minor_version_{1};
-    std::string_view host_;
-    std::string_view hostname_;
     std::string_view url_;
     mutable std::string origin_;
     mutable std::string href_;
@@ -170,13 +169,10 @@ private:
     mutable std::multimap<std::string, std::string> query_;
     std::string_view search_;
     std::string_view method_;
-    std::string_view content_type_;
-    std::string_view charset_;
     std::uint64_t content_length_{0};
-    bool keepalive_{false};
     bool websocket_{false};
     cookies& cookies_;
-    std::string body_;
+    std::string_view body_;
     std::vector<std::pair<std::string_view, std::string_view>> headers_;
 };
 

@@ -40,8 +40,9 @@ public:
     template <typename S = Socket, typename = std::enable_if_t<std::is_same<std::decay_t<S>, http_socket>::value>>
     base_connection(std::function<void(context&)> handler, boost::asio::io_service& io_service) noexcept
         : socket_{io_service},
-          parser_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
-                  std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
+          context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
+                   std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
+          parser_{context_},
           handler_{std::move(handler)} {
     }
 
@@ -52,8 +53,9 @@ public:
     base_connection(std::function<void(context&)> handler, boost::asio::io_service& io_service,
                     boost::asio::ssl::context& ssl_context) noexcept
         : socket_{io_service, ssl_context},
-          parser_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
-                  std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
+          context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
+                   std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
+          parser_{context_},
           handler_{std::move(handler)} {
     }
 #endif // ENABLE_HTTPS
@@ -89,60 +91,60 @@ protected:
                                     if (code) {
                                         close();
                                     } else {
-                                        const auto parse_code = parser_.parse(bytes_transferred);
-                                        // =  0 success
-                                        // = -1 error
-                                        // = -2 not complete
-                                        switch (parse_code) {
-                                        case 0:
-                                            handle_and_reply();
-                                            break;
-                                        case -1:
-                                            reply_error(400);
-                                            break;
-                                        case -2:
-                                        default:
-                                            do_read();
+                                        std::string reply_str;
+                                        reply_str.reserve(4096);
+                                        parse(bytes_transferred, reply_str);
+                                        if (!reply_str.empty()) {
+                                            reply(reply_str);
                                         }
                                     }
                                 });
     }
 
-    void reply_error(unsigned status) {
-        reply(make_reply_str(status), false);
+    void parse(std::size_t bytes, std::string& str) {
+        const auto parse_code = parser_.parse(bytes);
+        // std::cout << "parse code: " << parse_code << std::endl;
+        // =  0 success
+        // = -1 error
+        // = -2 not complete
+        // = -3 pipeline
+        switch (parse_code) {
+        case 0:
+            handle(str);
+            break;
+        case -1:
+            str.append(make_reply_str(400));
+            break;
+        case -3:
+            handle(str);
+            parse(0, str);
+            break;
+        case -2:
+        default:
+            do_read();
+        }
     }
 
-    void handle_and_reply() {
+    void handle(std::string& str) {
         assert(handler_);
-        std::string buffers;
-        buffers.reserve(2048);
-        bool is_close{false};
-        for (auto& ctx : parser_.contexts()) {
-            handler_(*ctx);
-            auto& req = ctx->req();
-            auto& res = ctx->res();
-            res.major_version(req.major_version());
-            res.minor_version(req.minor_version());
-            res.keepalive(req.keepalive());
-            if (req.websocket() && !ws_helper_) {
-                ws_helper_ = std::make_unique<ws_helper>();
-                ws_helper_->websocket_ = ctx->websocket_ptr();
-            }
-            is_close = is_close || !res.keepalive();
-            if (!res.is_stream()) {
-                buffers.append(res.to_string());
-            }
+        auto& req = context_.req();
+        auto& res = context_.res();
+        res.minor_version(req.minor_version());
+        handler_(context_);
+        if (req.websocket() && !ws_helper_) {
+            ws_helper_ = std::make_unique<ws_helper>();
+            ws_helper_->websocket_ = context_.websocket_ptr();
         }
-        if (!buffers.empty()) {
-            reply(buffers, is_close);
+        if (!res.is_stream()) {
+            res.to_string(str);
         }
     }
 
-    void reply(const std::string& buffers, bool is_close) {
+    void reply(const std::string& buffers) {
         boost::asio::async_write(socket_, boost::asio::buffer(buffers),
-                                 [is_close, this, self = this->shared_from_this()](
-                                     const boost::system::error_code& code, std::size_t bytes_transferred) {
-                                     if (code || is_close) {
+                                 [this, self = this->shared_from_this()](const boost::system::error_code& code,
+                                                                         std::size_t bytes_transferred) {
+                                     if (code) {
                                          close();
                                      } else {
                                          if (ws_helper_) {
@@ -351,13 +353,7 @@ protected:
     }
 
     std::string make_reply_str(unsigned status) const {
-        std::string str;
-        str.append("HTTP/1.1 ");
-        str.append(std::to_string(status));
-        str.append(" ");
-        auto message = detail::utils::get_message_for_status(status);
-        str.append(message.data(), message.size());
-        return str;
+        return std::string{detail::utils::get_response_line(1000 + status)};
     }
 
     struct ws_helper final {
@@ -369,6 +365,7 @@ protected:
     };
 
     Socket socket_;
+    context context_;
     detail::http_parser parser_;
     std::function<void(context&)> handler_;
     bool ws_handshake_{false};

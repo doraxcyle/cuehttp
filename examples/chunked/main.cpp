@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     router route;
     route.get("/chunked", [](context& ctx) {
         ctx.status(200);
-        ctx.set("Transfer-Encoding", "chunked");
+        ctx.chunked();
         ctx.body() << R"(<h1>Hello, cuehttp!</h1>)";
     });
 

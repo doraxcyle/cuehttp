@@ -24,7 +24,7 @@
 #include <memory>
 
 #include "cuehttp/cookies.hpp"
-#include "cuehttp/3rd_party/nlohmann_json.hpp"
+#include "cuehttp/deps/nlohmann_json.hpp"
 
 namespace cue {
 namespace http {
@@ -172,7 +172,7 @@ private:
             options_.external_key.destroy(context_, external_key_);
         } else {
             cookie::options options;
-            options.expires = std::string{detail::cookie_expires_date};
+            options.expires = std::string{detail::g_cookie_expires_date};
             cookies_.set(options_.key, "", std::move(options));
         }
     }

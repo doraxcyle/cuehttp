@@ -113,11 +113,6 @@ public:
         response_.redirect(std::forward<Url>(url));
     }
 
-    template <typename Msg>
-    void message(Msg&& message) {
-        response_.message(std::forward<Msg>(message));
-    }
-
     template <typename Field, typename Value>
     void set(Field&& field, Value&& value) {
         response_.set(std::forward<Field>(field), std::forward<Value>(value));
@@ -157,6 +152,10 @@ public:
     template <typename Options>
     void session(Options&& options) {
         session_ = std::make_unique<class session>(std::forward<Options>(options), *this, cookies_);
+    }
+
+    void chunked() noexcept {
+        response_.chunked();
     }
 
     bool has_body() const noexcept {

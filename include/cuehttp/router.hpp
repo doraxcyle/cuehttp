@@ -342,16 +342,20 @@ private:
                 return;
             }
 
-            std::size_t index{0};
-            std::function<void()> next;
-            next = [&handlers, &next, &index, &ctx]() {
-                if (++index == handlers.size()) {
-                    return;
-                }
-                handlers[index](ctx, next);
-            };
+            if (handlers.size() == 1) {
+                handlers[0](ctx, []() {});
+            } else {
+                std::size_t index{0};
+                std::function<void()> next;
+                next = [&handlers, &next, &index, &ctx]() {
+                    if (++index == handlers.size()) {
+                        return;
+                    }
+                    handlers[index](ctx, next);
+                };
 
-            handlers[0](ctx, next);
+                handlers[0](ctx, next);
+            }
         };
         handlers_.emplace(method + "+" + prefix_ + std::string{path}, std::move(handler));
     }

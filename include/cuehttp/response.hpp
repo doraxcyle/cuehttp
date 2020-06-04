@@ -36,10 +36,6 @@ public:
         : cookies_{cookies}, reply_handler_{std::move(handler)} {
     }
 
-    void major_version(unsigned version) noexcept {
-        major_version_ = version;
-    }
-
     void minor_version(unsigned version) noexcept {
         minor_version_ = version;
     }
@@ -50,11 +46,6 @@ public:
 
     void status(unsigned status) {
         status_ = status;
-    }
-
-    template <typename Msg>
-    void message(Msg&& message) {
-        message_ = std::forward<Msg>(message);
     }
 
     bool has(std::string_view field) const noexcept {
@@ -116,7 +107,7 @@ public:
     }
 
     void keepalive(bool keepalive) {
-        if (keepalive && major_version_ == 1) {
+        if (keepalive && minor_version_) {
             keepalive_ = true;
         } else {
             keepalive_ = false;
@@ -145,6 +136,13 @@ public:
         return body_;
     }
 
+    void chunked() noexcept {
+        if (!is_chunked_) {
+            is_chunked_ = true;
+            set("Transfer-Encoding", "chunked");
+        }
+    }
+
     template <typename Body>
     void body(Body&& body) {
         body_ = std::forward<Body>(body);
@@ -161,17 +159,17 @@ public:
         is_stream_ = true;
         reply_handler_(header_to_string());
         stream_ =
-            std::static_pointer_cast<std::ostream>(std::make_shared<detail::body_ostream>(chunked(), reply_handler_));
+            std::static_pointer_cast<std::ostream>(std::make_shared<detail::body_ostream>(is_chunked_, reply_handler_));
         return *stream_;
     }
 
     void reset() {
         headers_.clear();
         status_ = 404;
-        message_.clear();
-        keepalive_ = false;
+        keepalive_ = true;
         content_length_ = 0;
         body_.clear();
+        is_chunked_ = false;
         is_stream_ = false;
         response_str_.clear();
         stream_.reset();
@@ -181,83 +179,59 @@ public:
         return is_stream_;
     }
 
-    const std::string& to_string() {
-        response_str_.reserve(2048);
-        response_str_.append("HTTP/");
-        response_str_.append(std::to_string(major_version_));
-        response_str_.append(".");
-        response_str_.append(std::to_string(minor_version_));
-        response_str_.append(" ");
-        response_str_.append(std::to_string(status_));
-        response_str_.append(" ");
-        if (message_.empty()) {
-            response_str_.append(message_);
-        } else {
-            auto message = detail::utils::get_message_for_status(status_);
-            response_str_.append(message.data(), message.size());
-        }
-
-        response_str_.append("\r\n");
-
+    void to_string(std::string& str) {
+        const auto line = detail::utils::get_response_line(minor_version_ * 1000 + status_);
+        str.append(line.data(), line.length());
         // headers
-        response_str_.append("Server: cuehttp\r\n");
-        // response_str_.append("Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n");
+        // const auto now = std::chrono::steady_clock::now();
+        // if (now - last_time_ > std::chrono::seconds{1}) {
+        //     last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+        //     last_time_ = now;
+        // }
+        // str.append(last_gmt_date_str_);
         for (const auto& header : headers_) {
-            response_str_.append(header.first);
-            response_str_.append(": ");
-            response_str_.append(header.second);
-            response_str_.append("\r\n");
-        }
-
-        if (!keepalive_) {
-            response_str_.append("Connection: close\r\n");
+            str.append(header.first);
+            str.append(": ");
+            str.append(header.second);
+            str.append("\r\n");
         }
 
         // cookies
         const auto& cookies = cookies_.get();
         for (const auto& cookie : cookies) {
             if (cookie.valid()) {
-                response_str_.append("Set-Cookie: ");
-                response_str_.append(cookie.to_string());
-                response_str_.append("\r\n");
+                str.append("Set-Cookie: ");
+                str.append(cookie.to_string());
+                str.append("\r\n");
             }
         }
 
-        if (chunked()) {
-            // chunked
-            response_str_.append("\r\n");
+        if (!is_chunked_) {
+            if (content_length_ != 0) {
+                str.append("Content-Length: ");
+                str.append(std::to_string(content_length_));
+                str.append("\r\n\r\n");
+                str.append(body_);
+            } else {
+                str.append("Content-Length: 0\r\n\r\n");
+            }
         } else {
-            response_str_.append("Content-Length: ");
-            response_str_.append(std::to_string(content_length_));
-            response_str_.append("\r\n\r\n");
-            response_str_.append(body_);
+            // chunked
+            str.append("\r\n");
         }
-
-        return response_str_;
     }
 
 private:
-    friend std::ostream& operator<<(std::ostream& os, const response& response);
-
-    bool chunked() const noexcept {
-        return detail::utils::iequals(get("Transfer-Encoding"), "chunked");
-    }
-
     std::string header_to_string() {
         std::ostringstream os;
-        os << "HTTP/" << major_version_ << '.' << minor_version_ << ' ' << status_ << ' ' << message_ << "\r\n";
-
+        os << detail::utils::get_response_line(minor_version_ * 1000 + status_);
         // headers
-        os << "Server: cinatra\r\n";
-        os << "Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n";
+        // os << detail::utils::to_gmt_date_string(std::time(nullptr));
         for (const auto& header : headers_) {
-            if (chunked() && detail::utils::iequals(header.first, "Content-length")) {
-                continue;
-            }
             os << header.first << ": " << header.second << "\r\n";
         }
 
-        if (get("Connection").empty() && keepalive_) {
+        if (get("connection").empty() && keepalive_) {
             os << "Connection: keep-alive\r\n";
         }
 
@@ -269,63 +243,30 @@ private:
             }
         }
 
-        if (chunked()) {
+        if (is_chunked_) {
             os << "\r\n";
         } else {
-            if (!has("Content-Length")) {
-                os << "Content-Length: " << content_length_ << "\r\n\r\n";
-            }
+            os << "Content-Length: " << content_length_ << "\r\n\r\n";
         }
+
         return os.str();
     }
 
     std::vector<std::pair<std::string, std::string>> headers_;
-    unsigned major_version_{1};
     unsigned minor_version_{1};
     unsigned status_{404};
-    std::string message_;
-    bool keepalive_{false};
+    bool keepalive_{true};
     std::uint64_t content_length_{0};
     cookies& cookies_;
     std::string body_;
     std::string response_str_;
+    bool is_chunked_{false};
     bool is_stream_{false};
+    std::chrono::steady_clock::time_point last_time_{std::chrono::steady_clock::now()};
+    std::string last_gmt_date_str_;
     detail::reply_handler reply_handler_;
     std::shared_ptr<std::ostream> stream_{nullptr};
 };
-
-inline std::ostream& operator<<(std::ostream& os, const response& response) {
-    os << "HTTP/" << response.major_version_ << '.' << response.minor_version_ << ' ' << response.status_ << ' '
-       << response.message_ << "\r\n";
-
-    // headers
-    os << "Server: cuehttp\r\n";
-    os << "Date: " + detail::utils::to_gmt_string(std::time(nullptr)) + "\r\n";
-    for (const auto& header : response.headers_) {
-        os << header.first << ": " << header.second << "\r\n";
-    }
-
-    if (response.get("Connection").empty() && response.keepalive_) {
-        os << "Connection: keep-alive\r\n";
-    }
-
-    // cookies
-    const auto& cookies = response.cookies_.get();
-    for (const auto& cookie : cookies) {
-        if (cookie.valid()) {
-            os << "Set-Cookie: " << cookie.to_string() << "\r\n";
-        }
-    }
-
-    if (response.chunked()) {
-        // chunked
-        os << "\r\n";
-    } else {
-        os << "Content-length: " << response.content_length_ << "\r\n\r\n";
-        os << response.body_;
-    }
-    return os;
-}
 
 } // namespace http
 } // namespace cue

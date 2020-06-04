@@ -136,16 +136,20 @@ private:
                 return;
             }
 
-            std::size_t index{0};
-            std::function<void()> next;
-            next = [this, &next, &index, &ctx]() {
-                if (++index == middlewares_.size()) {
-                    return;
-                }
-                middlewares_[index](ctx, next);
-            };
+            if (middlewares_.size() == 1) {
+                middlewares_[0](ctx, []() {});
+            } else {
+                std::size_t index{0};
+                std::function<void()> next;
+                next = [this, &next, &index, &ctx]() {
+                    if (++index == middlewares_.size()) {
+                        return;
+                    }
+                    middlewares_[index](ctx, next);
+                };
 
-            middlewares_[0](ctx, next);
+                middlewares_[0](ctx, next);
+            }
         };
     }
 
