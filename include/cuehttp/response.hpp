@@ -33,7 +33,9 @@ namespace http {
 class response final : safe_noncopyable {
 public:
     response(cookies& cookies, detail::reply_handler handler) noexcept
-        : cookies_{cookies}, reply_handler_{std::move(handler)} {
+        : cookies_{cookies},
+          last_gmt_date_str_{detail::utils::to_gmt_date_string(std::time(nullptr))},
+          reply_handler_{std::move(handler)} {
     }
 
     void minor_version(unsigned version) noexcept {
@@ -183,6 +185,12 @@ public:
         const auto line = detail::utils::get_response_line(minor_version_ * 1000 + status_);
         str.append(line.data(), line.length());
         // headers
+        const auto now = std::chrono::steady_clock::now();
+        if (now - last_time_ > std::chrono::seconds{1}) {
+            last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+            last_time_ = now;
+        }
+        str.append(last_gmt_date_str_);
         for (const auto& header : headers_) {
             str.append(header.first);
             str.append(": ");
@@ -204,14 +212,10 @@ public:
             if (content_length_ != 0) {
                 str.append("Content-Length: ");
                 str.append(std::to_string(content_length_));
-                str.append("\r\n");
-                append_date(str);
-                str.append("\r\n");
+                str.append("\r\n\r\n");
                 str.append(body_);
             } else {
-                str.append("Content-Length: 0\r\n");
-                append_date(str);
-                str.append("\r\n");
+                str.append("Content-Length: 0\r\n\r\n");
             }
         } else {
             // chunked
@@ -248,15 +252,6 @@ private:
         }
 
         return os.str();
-    }
-
-    void append_date(std::string& str) {
-        const auto now = std::chrono::steady_clock::now();
-        if (now - last_time_ > std::chrono::seconds{1}) {
-            last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
-            last_time_ = now;
-        }
-        str.append(last_gmt_date_str_);
     }
 
     std::vector<std::pair<std::string, std::string>> headers_;
