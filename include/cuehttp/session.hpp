@@ -24,7 +24,7 @@
 #include <memory>
 
 #include "cuehttp/cookies.hpp"
-#include "cuehttp/deps/nlohmann_json.hpp"
+#include "cuehttp/deps/json.hpp"
 
 namespace cue {
 namespace http {
