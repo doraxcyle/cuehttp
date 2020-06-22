@@ -36,7 +36,7 @@ class context final : safe_noncopyable {
 public:
     context(detail::reply_handler handler, bool https, detail::ws_send_handler ws_send_handler) noexcept
         : response_{cookies_, std::move(handler)},
-          request_{https, cookies_},
+          request_{https, response_, cookies_},
           ws_send_handler_{std::move(ws_send_handler)} {
     }
 
@@ -59,7 +59,7 @@ public:
     }
 
     // request
-    const std::vector<std::pair<std::string_view, std::string_view>>& headers() const noexcept {
+    std::vector<std::pair<std::string_view, std::string_view>> headers() const noexcept {
         return request_.headers();
     }
 

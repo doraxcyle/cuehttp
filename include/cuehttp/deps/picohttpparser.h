@@ -58,15 +58,15 @@ struct phr_header {
 
 /* returns number of bytes consumed if successful, -2 if request is partial,
  * -1 if failed */
-int phr_parse_request(const char *buf, size_t len, const char **method, size_t *method_len, const char **path, size_t *path_len,
-                      int *minor_version, struct phr_header *headers, size_t *num_headers, size_t last_len);
+// int phr_parse_request(const char *buf, size_t len, const char **method, size_t *method_len, const char **path, size_t *path_len,
+//                       int *minor_version, struct phr_header *headers, size_t *num_headers, size_t last_len);
 
-/* ditto */
-int phr_parse_response(const char *_buf, size_t len, int *minor_version, int *status, const char **msg, size_t *msg_len,
-                       struct phr_header *headers, size_t *num_headers, size_t last_len);
+// /* ditto */
+// int phr_parse_response(const char *_buf, size_t len, int *minor_version, int *status, const char **msg, size_t *msg_len,
+//                        struct phr_header *headers, size_t *num_headers, size_t last_len);
 
-/* ditto */
-int phr_parse_headers(const char *buf, size_t len, struct phr_header *headers, size_t *num_headers, size_t last_len);
+// /* ditto */
+// int phr_parse_headers(const char *buf, size_t len, struct phr_header *headers, size_t *num_headers, size_t last_len);
 
 /* should be zero-filled before start */
 struct phr_chunked_decoder {
@@ -85,10 +85,10 @@ struct phr_chunked_decoder {
  * octets left undecoded at the tail of the supplied buffer.  Returns -1 on
  * error.
  */
-ssize_t phr_decode_chunked(struct phr_chunked_decoder *decoder, char *buf, size_t *bufsz);
+// ssize_t phr_decode_chunked(struct phr_chunked_decoder *decoder, char *buf, size_t *bufsz);
 
 /* returns if the chunked decoder is in middle of chunked data */
-int phr_decode_chunked_is_in_data(struct phr_chunked_decoder *decoder);
+// int phr_decode_chunked_is_in_data(struct phr_chunked_decoder *decoder);
 
 #if __GNUC__ >= 3
 #define likely(x) __builtin_expect(!!(x), 1)
@@ -156,7 +156,7 @@ static const char *token_char_map = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\
                                     "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
                                     "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-static const char *findchar_fast(const char *buf, const char *buf_end, const char *ranges, size_t ranges_size, int *found)
+inline const char *findchar_fast(const char *buf, const char *buf_end, const char *ranges, size_t ranges_size, int *found)
 {
     *found = 0;
 #if __SSE4_2__
@@ -185,7 +185,7 @@ static const char *findchar_fast(const char *buf, const char *buf_end, const cha
     return buf;
 }
 
-static const char *get_token_to_eol(const char *buf, const char *buf_end, const char **token, size_t *token_len, int *ret)
+inline const char *get_token_to_eol(const char *buf, const char *buf_end, const char **token, size_t *token_len, int *ret)
 {
     const char *token_start = buf;
 
@@ -248,7 +248,7 @@ FOUND_CTL:
     return buf;
 }
 
-static const char *is_complete(const char *buf, const char *buf_end, size_t last_len, int *ret)
+inline const char *is_complete(const char *buf, const char *buf_end, size_t last_len, int *ret)
 {
     int ret_cnt = 0;
     buf = last_len < 3 ? buf : buf + last_len - 3;
@@ -296,7 +296,7 @@ static const char *is_complete(const char *buf, const char *buf_end, size_t last
     } while (0)
 
 /* returned pointer is always within [buf, buf_end), or null */
-static const char *parse_http_version(const char *buf, const char *buf_end, int *minor_version, int *ret)
+inline const char *parse_http_version(const char *buf, const char *buf_end, int *minor_version, int *ret)
 {
     /* we want at least [HTTP/1.<two chars>] to try to parse */
     if (buf_end - buf < 9) {
@@ -314,7 +314,7 @@ static const char *parse_http_version(const char *buf, const char *buf_end, int 
     return buf;
 }
 
-static const char *parse_headers(const char *buf, const char *buf_end, struct phr_header *headers, size_t *num_headers,
+inline const char *parse_headers(const char *buf, const char *buf_end, struct phr_header *headers, size_t *num_headers,
                                  size_t max_headers, int *ret)
 {
     for (;; ++*num_headers) {
@@ -392,7 +392,7 @@ static const char *parse_headers(const char *buf, const char *buf_end, struct ph
     return buf;
 }
 
-static const char *parse_request(const char *buf, const char *buf_end, const char **method, size_t *method_len, const char **path,
+inline const char *parse_request(const char *buf, const char *buf_end, const char **method, size_t *method_len, const char **path,
                                  size_t *path_len, int *minor_version, struct phr_header *headers, size_t *num_headers,
                                  size_t max_headers, int *ret)
 {
@@ -434,12 +434,12 @@ static const char *parse_request(const char *buf, const char *buf_end, const cha
     return parse_headers(buf, buf_end, headers, num_headers, max_headers, ret);
 }
 
-int phr_parse_request(const char *buf_start, size_t len, const char **method, size_t *method_len, const char **path,
+inline int phr_parse_request(const char *buf_start, size_t len, const char **method, size_t *method_len, const char **path,
                       size_t *path_len, int *minor_version, struct phr_header *headers, size_t *num_headers, size_t last_len)
 {
     const char *buf = buf_start, *buf_end = buf_start + len;
     size_t max_headers = *num_headers;
-    int r;
+    int r = -1;
 
     *method = NULL;
     *method_len = 0;
@@ -462,7 +462,7 @@ int phr_parse_request(const char *buf_start, size_t len, const char **method, si
     return (int)(buf - buf_start);
 }
 
-static const char *parse_response(const char *buf, const char *buf_end, int *minor_version, int *status, const char **msg,
+inline const char *parse_response(const char *buf, const char *buf_end, int *minor_version, int *status, const char **msg,
                                   size_t *msg_len, struct phr_header *headers, size_t *num_headers, size_t max_headers, int *ret)
 {
     /* parse "HTTP/1.x" */
@@ -505,7 +505,7 @@ static const char *parse_response(const char *buf, const char *buf_end, int *min
     return parse_headers(buf, buf_end, headers, num_headers, max_headers, ret);
 }
 
-int phr_parse_response(const char *buf_start, size_t len, int *minor_version, int *status, const char **msg, size_t *msg_len,
+inline int phr_parse_response(const char *buf_start, size_t len, int *minor_version, int *status, const char **msg, size_t *msg_len,
                        struct phr_header *headers, size_t *num_headers, size_t last_len)
 {
     const char *buf = buf_start, *buf_end = buf + len;
@@ -531,7 +531,7 @@ int phr_parse_response(const char *buf_start, size_t len, int *minor_version, in
     return (int)(buf - buf_start);
 }
 
-int phr_parse_headers(const char *buf_start, size_t len, struct phr_header *headers, size_t *num_headers, size_t last_len)
+inline int phr_parse_headers(const char *buf_start, size_t len, struct phr_header *headers, size_t *num_headers, size_t last_len)
 {
     const char *buf = buf_start, *buf_end = buf + len;
     size_t max_headers = *num_headers;
@@ -561,7 +561,7 @@ enum {
     CHUNKED_IN_TRAILERS_LINE_MIDDLE
 };
 
-static int decode_hex(int ch)
+inline int decode_hex(int ch)
 {
     if ('0' <= ch && ch <= '9') {
         return ch - '0';
@@ -574,7 +574,7 @@ static int decode_hex(int ch)
     }
 }
 
-ssize_t phr_decode_chunked(struct phr_chunked_decoder *decoder, char *buf, size_t *_bufsz)
+inline ssize_t phr_decode_chunked(struct phr_chunked_decoder *decoder, char *buf, size_t *_bufsz)
 {
     size_t dst = 0, src = 0, bufsz = *_bufsz;
     ssize_t ret = -2; /* incomplete */
@@ -689,7 +689,7 @@ Exit:
     return ret;
 }
 
-int phr_decode_chunked_is_in_data(struct phr_chunked_decoder *decoder)
+inline int phr_decode_chunked_is_in_data(struct phr_chunked_decoder *decoder)
 {
     return decoder->_state == CHUNKED_IN_CHUNK_DATA;
 }

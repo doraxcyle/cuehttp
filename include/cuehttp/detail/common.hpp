@@ -119,22 +119,26 @@ using is_middleware_list =
 
 // utilities functions
 struct utils final : safe_noncopyable {
-    static std::int64_t now() {
+    inline static std::int64_t now() {
         using namespace std::chrono;
         return duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    static constexpr std::string_view to_method_string(unsigned method) noexcept {
+    inline static constexpr std::string_view to_method_string(unsigned method) noexcept {
         assert(method < sizeof(g_methods));
         return g_methods[method];
     }
 
-    static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
+    inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept {
+        if (lhs.size() != rhs.size()) {
+            return false;
+        }
+
         return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
                           [](char l, char r) { return std::tolower(l) == std::tolower(r); });
     }
 
-    static std::string to_lower(std::string_view str) noexcept {
+    inline static std::string to_lower(std::string_view str) noexcept {
         std::string lower_str;
         for (const auto& c : str) {
             lower_str += std::tolower(c);
@@ -142,7 +146,7 @@ struct utils final : safe_noncopyable {
         return lower_str;
     }
 
-    static std::multimap<std::string, std::string> parse_query(std::string_view querystring) {
+    inline static std::multimap<std::string, std::string> parse_query(std::string_view querystring) {
         static const auto decode = [](const std::string& str, std::string& decoded) {
             auto it = str.cbegin();
             auto end = str.cend();
@@ -215,7 +219,7 @@ struct utils final : safe_noncopyable {
         return query;
     }
 
-    static std::string_view get_message_for_status(unsigned status) noexcept {
+    inline static std::string_view get_message_for_status(unsigned status) noexcept {
         using namespace std::literals;
         static std::unordered_map<unsigned, std::string_view> messages = {{100, "Continue"sv},
                                                                           {101, "Switching Protocols"sv},
@@ -278,7 +282,7 @@ struct utils final : safe_noncopyable {
         return messages[status];
     }
 
-    static std::string_view get_response_line(unsigned status) noexcept {
+    inline static std::string_view get_response_line(unsigned status) noexcept {
         using namespace std::literals;
         static std::unordered_map<unsigned, std::string_view> messages = {
             {100, "HTTP/1.0 100 Continue\r\nServer: cuehttp\r\n"sv},
@@ -401,7 +405,7 @@ struct utils final : safe_noncopyable {
         return messages[status];
     }
 
-    static std::string to_gmt_string(std::time_t time) noexcept {
+    inline static std::string to_gmt_string(std::time_t time) noexcept {
         struct tm* gmt;
 #ifdef __linux__
         struct tm now;
@@ -414,7 +418,7 @@ struct utils final : safe_noncopyable {
         return buff;
     }
 
-    static std::string to_gmt_date_string(std::time_t time) noexcept {
+    inline static std::string to_gmt_date_string(std::time_t time) noexcept {
         struct tm* gmt;
 #ifdef __linux__
         struct tm now;
@@ -427,7 +431,7 @@ struct utils final : safe_noncopyable {
         return buff;
     }
 
-    static std::vector<std::string_view> split(std::string_view str, std::string_view separators) noexcept {
+    inline static std::vector<std::string_view> split(std::string_view str, std::string_view separators) noexcept {
         std::size_t start{0};
         std::size_t end{str.find_first_of(separators)};
         std::vector<std::string_view> tookens;
@@ -442,7 +446,7 @@ struct utils final : safe_noncopyable {
         return tookens;
     }
 
-    static std::string base64_encode(std::string_view source) {
+    inline static std::string base64_encode(std::string_view source) {
         using base64_encode_iterator = boost::archive::iterators::base64_from_binary<
             boost::archive::iterators::transform_width<std::string::const_iterator, 6, 8>>;
         std::stringstream result;
@@ -455,7 +459,7 @@ struct utils final : safe_noncopyable {
         return result.str();
     }
 
-    static std::string base64_decode(std::string_view source) noexcept {
+    inline static std::string base64_decode(std::string_view source) noexcept {
         using base64_decode_iterator = boost::archive::iterators::transform_width<
             boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
         std::string result;
@@ -477,12 +481,12 @@ struct utils final : safe_noncopyable {
         return result;
     }
 
-    static std::string uuid() {
+    inline static std::string uuid() {
         const auto uuid = boost::uuids::random_generator()();
         return boost::uuids::to_string(uuid);
     }
 
-    static std::uint32_t random_uint32() {
+    inline static std::uint32_t random_uint32() {
         std::mt19937 generator{static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
         return generator();
     }

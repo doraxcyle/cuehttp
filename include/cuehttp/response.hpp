@@ -26,6 +26,7 @@
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/body_stream.hpp"
+#include "cuehttp/deps/to_chars.hpp"
 
 namespace cue {
 namespace http {
@@ -211,7 +212,9 @@ public:
         if (!is_chunked_) {
             if (content_length_ != 0) {
                 str.append("Content-Length: ");
-                str.append(std::to_string(content_length_));
+                char length[16]{};
+                to_chars_jeaiii(length, 16, content_length_);
+                str.append(length);
                 str.append("\r\n\r\n");
                 str.append(body_);
             } else {

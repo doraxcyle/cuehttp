@@ -26,7 +26,7 @@
 #include <mutex>
 #include <boost/asio.hpp>
 
-#include "cuehttp/detail/http_parser.hpp"
+#include "cuehttp/context.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/endian.hpp"
 
@@ -42,7 +42,6 @@ public:
         : socket_{io_service},
           context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
                    std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
-          parser_{context_},
           handler_{std::move(handler)} {
     }
 
@@ -55,7 +54,6 @@ public:
         : socket_{io_service, ssl_context},
           context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
                    std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
-          parser_{context_},
           handler_{std::move(handler)} {
     }
 #endif // ENABLE_HTTPS
@@ -84,48 +82,56 @@ protected:
     }
 
     void do_read_some() {
-        auto buffer = parser_.buffer();
+        auto buffer = context_.req().buffer();
         socket_.async_read_some(boost::asio::buffer(buffer.first, buffer.second),
                                 [this, self = this->shared_from_this()](const boost::system::error_code& code,
                                                                         std::size_t bytes_transferred) {
                                     if (code) {
                                         close();
                                     } else {
-                                        std::string reply_str;
-                                        reply_str.reserve(4096);
-                                        parse(bytes_transferred, reply_str);
-                                        if (!reply_str.empty()) {
-                                            reply(reply_str);
-                                        }
+                                        reply_str_.reserve(4096);
+                                        const auto finished = parse(bytes_transferred);
+                                        reply(finished);
                                     }
                                 });
     }
 
-    void parse(std::size_t bytes, std::string& str) {
-        const auto parse_code = parser_.parse(bytes);
-        // std::cout << "parse code: " << parse_code << std::endl;
-        // =  0 success
-        // = -1 error
-        // = -2 not complete
-        // = -3 pipeline
+    bool parse(std::size_t bytes) {
+        const auto parse_code = context_.req().parse(bytes);
+        // = 0 success = -1 error = -2 not complete = -3 pipeline
         switch (parse_code) {
         case 0:
-            handle(str);
-            break;
+            handle();
+            return true;
         case -1:
-            str.append(make_reply_str(400));
-            break;
+            reply_str_.append(make_reply_str(400));
+            return true;
         case -3:
-            handle(str);
-            parse(0, str);
-            break;
+            handle();
+            for (;;) {
+                const auto code = context_.req().parse(0);
+                if (code == 0) {
+                    handle();
+                    return true;
+                } else if (code == -1) {
+                    reply_str_.append(make_reply_str(400));
+                    return true;
+                } else if (code == -2) {
+                    handle();
+                    return false;
+                } else {
+                    handle();
+                }
+            }
         case -2:
+            return false;
         default:
             do_read();
         }
+        return true;
     }
 
-    void handle(std::string& str) {
+    void handle() {
         assert(handler_);
         auto& req = context_.req();
         auto& res = context_.res();
@@ -136,23 +142,26 @@ protected:
             ws_helper_->websocket_ = context_.websocket_ptr();
         }
         if (!res.is_stream()) {
-            res.to_string(str);
+            res.to_string(reply_str_);
         }
     }
 
-    void reply(const std::string& buffers) {
-        boost::asio::async_write(socket_, boost::asio::buffer(buffers),
-                                 [this, self = this->shared_from_this()](const boost::system::error_code& code,
-                                                                         std::size_t bytes_transferred) {
+    void reply(bool finished) {
+        boost::asio::async_write(socket_, boost::asio::buffer(reply_str_),
+                                 [this, finished, self = this->shared_from_this()](
+                                     const boost::system::error_code& code, std::size_t bytes_transferred) {
                                      if (code) {
                                          close();
                                      } else {
+                                         reply_str_.clear();
                                          if (ws_helper_) {
                                              ws_handshake_ = true;
                                              ws_helper_->websocket_->emit(detail::ws_event::open);
                                              do_read_ws_header();
                                          } else {
-                                             parser_.reset();
+                                             if (finished) {
+                                                 context_.reset();
+                                             }
                                              do_read();
                                          }
                                      }
@@ -366,8 +375,8 @@ protected:
 
     Socket socket_;
     context context_;
-    detail::http_parser parser_;
     std::function<void(context&)> handler_;
+    std::string reply_str_;
     bool ws_handshake_{false};
     std::unique_ptr<ws_helper> ws_helper_;
 };
