@@ -24,11 +24,11 @@
 #include <functional>
 #include <vector>
 #include <type_traits>
-#include <boost/asio.hpp>
-#ifdef ENABLE_HTTPS
-#include <boost/asio/ssl.hpp>
-#endif // ENABLE_HTTPS
 
+#include "cuehttp/deps/asio/asio.hpp"
+#ifdef ENABLE_HTTPS
+#include "cuehttp/deps/asio/asio/ssl.hpp"
+#endif // ENABLE_HTTPS
 #include "cuehttp/context.hpp"
 #include "cuehttp/detail/connection.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
@@ -66,14 +66,14 @@ public:
 
     base_server& listen(unsigned port) {
         assert(port != 0);
-        listen_impl(boost::asio::ip::tcp::resolver::query{std::to_string(port)});
+        listen_impl(asio::ip::tcp::resolver::query{std::to_string(port)});
         return *this;
     }
 
     template <typename Host>
     base_server& listen(unsigned port, Host&& host) {
         assert(port != 0);
-        listen_impl(boost::asio::ip::tcp::resolver::query{std::forward<Host>(host), std::to_string(port)});
+        listen_impl(asio::ip::tcp::resolver::query{std::forward<Host>(host), std::to_string(port)});
         return *this;
     }
 
@@ -82,12 +82,12 @@ public:
     }
 
 protected:
-    void listen_impl(boost::asio::ip::tcp::resolver::query&& query) {
+    void listen_impl(asio::ip::tcp::resolver::query&& query) {
         auto& engines = detail::engines::default_engines();
-        boost::asio::ip::tcp::endpoint endpoint{*boost::asio::ip::tcp::resolver{engines.get()}.resolve(query)};
-        acceptor_ = std::make_shared<boost::asio::ip::tcp::acceptor>(engines.get());
+        asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engines.get()}.resolve(query)};
+        acceptor_ = std::make_shared<asio::ip::tcp::acceptor>(engines.get());
         acceptor_->open(endpoint.protocol());
-        acceptor_->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+        acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true));
         acceptor_->bind(endpoint);
         acceptor_->listen();
         do_accept();
@@ -97,7 +97,7 @@ protected:
         static_cast<T&>(*this).do_accept_real();
     }
 
-    std::shared_ptr<boost::asio::ip::tcp::acceptor> acceptor_;
+    std::shared_ptr<asio::ip::tcp::acceptor> acceptor_;
     std::function<void(context&)> handler_;
 };
 
@@ -128,13 +128,13 @@ public:
     void do_accept_real() {
         auto connector =
             std::make_shared<detail::connection<Socket>>(this->handler_, detail::engines::default_engines().get());
-        this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
+        this->acceptor_->async_accept(connector->socket(), [this, connector](const std::error_code& code) {
             if (!this->acceptor_->is_open()) {
                 return;
             }
 
             if (!code) {
-                connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
+                connector->socket().set_option(asio::ip::tcp::no_delay{true});
                 connector->run();
             }
 
@@ -149,12 +149,12 @@ class server<detail::https_socket> final : public base_server<detail::https_sock
                                            safe_noncopyable {
 public:
     server(std::function<void(context&)> handler, const std::string& key, const std::string& cert) noexcept
-        : base_server{std::move(handler)}, ssl_context_{boost::asio::ssl::context::sslv23} {
+        : base_server{std::move(handler)}, ssl_context_{asio::ssl::context::sslv23} {
         ssl_context_.use_certificate_chain_file(cert);
-        ssl_context_.use_private_key_file(key, boost::asio::ssl::context::pem);
+        ssl_context_.use_private_key_file(key, asio::ssl::context::pem);
     }
 
-    server(server&& rhs) noexcept : ssl_context_{boost::asio::ssl::context::sslv23} {
+    server(server&& rhs) noexcept : ssl_context_{asio::ssl::context::sslv23} {
         swap(rhs);
     }
 
@@ -173,13 +173,13 @@ public:
     void do_accept_real() {
         auto connector = std::make_shared<detail::connection<detail::https_socket>>(
             this->handler_, detail::engines::default_engines().get(), ssl_context_);
-        this->acceptor_->async_accept(connector->socket(), [this, connector](const boost::system::error_code& code) {
+        this->acceptor_->async_accept(connector->socket(), [this, connector](const std::error_code& code) {
             if (!this->acceptor_->is_open()) {
                 return;
             }
 
             if (!code) {
-                connector->socket().set_option(boost::asio::ip::tcp::no_delay{true});
+                connector->socket().set_option(asio::ip::tcp::no_delay{true});
                 connector->run();
             }
 
@@ -188,7 +188,7 @@ public:
     }
 
 private:
-    boost::asio::ssl::context ssl_context_;
+    asio::ssl::context ssl_context_;
 };
 #endif // ENABLE_HTTPS
 

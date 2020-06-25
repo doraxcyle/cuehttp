@@ -6,11 +6,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -std=c++14")
 
 set(SRC main.cpp)
 include_directories(${PROJECT_SOURCE_DIR}/../../include)
+include_directories(${PROJECT_SOURCE_DIR}/../../include/cuehttp/deps/asio)
 
 find_package(Boost COMPONENTS system REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-option(ENABLE_HTTPS "enable https" ON)
+option(ENABLE_HTTPS "enable https" OFF)
 if (ENABLE_HTTPS)
     message("-- enable https")
     find_package(OpenSSL REQUIRED)

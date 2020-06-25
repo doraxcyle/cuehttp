@@ -54,11 +54,11 @@ using namespace nonstd::literals::string_view_literals;
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/asio.hpp>
-#ifdef ENABLE_HTTPS
-#include <boost/asio/ssl.hpp>
-#endif // ENABLE_HTTPS
 
+#include "cuehttp/deps/asio/asio.hpp"
+#ifdef ENABLE_HTTPS
+#include "cuehttp/deps/asio/asio/ssl.hpp"
+#endif // ENABLE_HTTPS
 #include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
@@ -74,9 +74,9 @@ struct ws_frame;
 
 // types
 using reply_handler = std::function<bool(const std::string&)>;
-using http_socket = boost::asio::ip::tcp::socket;
+using http_socket = asio::ip::tcp::socket;
 #ifdef ENABLE_HTTPS
-using https_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
+using https_socket = asio::ssl::stream<asio::ip::tcp::socket>;
 #endif // ENABLE_HTTPS
 using ws_send_handler = std::function<void(detail::ws_frame&&)>;
 

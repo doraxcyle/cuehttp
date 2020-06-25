@@ -24,8 +24,8 @@
 #include <functional>
 #include <queue>
 #include <mutex>
-#include <boost/asio.hpp>
 
+#include "cuehttp/deps/asio/asio.hpp"
 #include "cuehttp/context.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/endian.hpp"
@@ -38,7 +38,7 @@ template <typename Socket, typename T>
 class base_connection : public std::enable_shared_from_this<base_connection<Socket, T>>, safe_noncopyable {
 public:
     template <typename S = Socket, typename = std::enable_if_t<std::is_same<std::decay_t<S>, http_socket>::value>>
-    base_connection(std::function<void(context&)> handler, boost::asio::io_service& io_service) noexcept
+    base_connection(std::function<void(context&)> handler, asio::io_service& io_service) noexcept
         : socket_{io_service},
           context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
                    std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
@@ -49,8 +49,8 @@ public:
 
 #ifdef ENABLE_HTTPS
     template <typename S = Socket, typename = std::enable_if_t<!std::is_same<std::decay_t<S>, http_socket>::value>>
-    base_connection(std::function<void(context&)> handler, boost::asio::io_service& io_service,
-                    boost::asio::ssl::context& ssl_context) noexcept
+    base_connection(std::function<void(context&)> handler, asio::io_service& io_service,
+                    asio::ssl::context& ssl_context) noexcept
         : socket_{io_service, ssl_context},
           context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), true,
                    std::bind(&base_connection::send_ws_frame, this, std::placeholders::_1)},
@@ -58,7 +58,7 @@ public:
     }
 #endif // ENABLE_HTTPS
 
-    boost::asio::ip::tcp::socket& socket() noexcept {
+    asio::ip::tcp::socket& socket() noexcept {
         return static_cast<T&>(*this).socket();
     }
 
@@ -72,8 +72,8 @@ protected:
             ws_helper_->websocket_->emit(detail::ws_event::close);
             ws_handshake_ = false;
         }
-        boost::system::error_code code;
-        socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, code);
+        std::error_code code;
+        socket().shutdown(asio::ip::tcp::socket::shutdown_both, code);
         socket().close(code);
     }
 
@@ -83,17 +83,17 @@ protected:
 
     void do_read_some() {
         auto buffer = context_.req().buffer();
-        socket_.async_read_some(boost::asio::buffer(buffer.first, buffer.second),
-                                [this, self = this->shared_from_this()](const boost::system::error_code& code,
-                                                                        std::size_t bytes_transferred) {
-                                    if (code) {
-                                        close();
-                                    } else {
-                                        reply_str_.reserve(4096);
-                                        const auto finished = parse(bytes_transferred);
-                                        reply(finished);
-                                    }
-                                });
+        socket_.async_read_some(
+            asio::buffer(buffer.first, buffer.second),
+            [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+                if (code) {
+                    close();
+                } else {
+                    reply_str_.reserve(4096);
+                    const auto finished = parse(bytes_transferred);
+                    reply(finished);
+                }
+            });
     }
 
     bool parse(std::size_t bytes) {
@@ -147,54 +147,54 @@ protected:
     }
 
     void reply(bool finished) {
-        boost::asio::async_write(socket_, boost::asio::buffer(reply_str_),
-                                 [this, finished, self = this->shared_from_this()](
-                                     const boost::system::error_code& code, std::size_t bytes_transferred) {
-                                     if (code) {
-                                         close();
-                                     } else {
-                                         reply_str_.clear();
-                                         if (ws_helper_) {
-                                             ws_handshake_ = true;
-                                             ws_helper_->websocket_->emit(detail::ws_event::open);
-                                             do_read_ws_header();
-                                         } else {
-                                             if (finished) {
-                                                 context_.reset();
-                                             }
-                                             do_read();
-                                         }
-                                     }
-                                 });
+        asio::async_write(socket_, asio::buffer(reply_str_),
+                          [this, finished, self = this->shared_from_this()](const std::error_code& code,
+                                                                            std::size_t bytes_transferred) {
+                              if (code) {
+                                  close();
+                              } else {
+                                  reply_str_.clear();
+                                  if (ws_helper_) {
+                                      ws_handshake_ = true;
+                                      ws_helper_->websocket_->emit(detail::ws_event::open);
+                                      do_read_ws_header();
+                                  } else {
+                                      if (finished) {
+                                          context_.reset();
+                                      }
+                                      do_read();
+                                  }
+                              }
+                          });
     }
 
     bool reply_chunk(const std::string& chunk) {
-        boost::system::error_code code;
-        boost::asio::write(socket_, boost::asio::buffer(chunk), code);
+        std::error_code code;
+        asio::write(socket_, asio::buffer(chunk), code);
         return !!code;
     }
 
     void do_read_ws_header() {
-        boost::asio::async_read(socket_, boost::asio::buffer(ws_helper_->ws_reader_.header),
-                                [this, self = this->shared_from_this()](const boost::system::error_code& code,
-                                                                        std::size_t bytes_transferred) {
-                                    if (code) {
-                                        close();
-                                    } else {
-                                        auto& reader = ws_helper_->ws_reader_;
-                                        reader.fin = reader.header[0] & 0x80;
-                                        reader.opcode = static_cast<detail::ws_opcode>(reader.header[0] & 0xf);
-                                        reader.has_mask = reader.header[1] & 0x80;
-                                        reader.length = reader.header[1] & 0x7f;
-                                        if (reader.length == 126) {
-                                            do_read_ws_length_and_mask(2);
-                                        } else if (reader.length == 127) {
-                                            do_read_ws_length_and_mask(8);
-                                        } else {
-                                            do_read_ws_length_and_mask(0);
-                                        }
-                                    }
-                                });
+        asio::async_read(
+            socket_, asio::buffer(ws_helper_->ws_reader_.header),
+            [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+                if (code) {
+                    close();
+                } else {
+                    auto& reader = ws_helper_->ws_reader_;
+                    reader.fin = reader.header[0] & 0x80;
+                    reader.opcode = static_cast<detail::ws_opcode>(reader.header[0] & 0xf);
+                    reader.has_mask = reader.header[1] & 0x80;
+                    reader.length = reader.header[1] & 0x7f;
+                    if (reader.length == 126) {
+                        do_read_ws_length_and_mask(2);
+                    } else if (reader.length == 127) {
+                        do_read_ws_length_and_mask(8);
+                    } else {
+                        do_read_ws_length_and_mask(0);
+                    }
+                }
+            });
     }
 
     void do_read_ws_length_and_mask(std::size_t bytes) {
@@ -204,9 +204,9 @@ protected:
             handle_ws();
         } else {
             reader.length_mask_buffer.resize(length);
-            boost::asio::async_read(
-                socket_, boost::asio::buffer(reader.length_mask_buffer.data(), length),
-                [bytes, this, self = this->shared_from_this()](const boost::system::error_code& code,
+            asio::async_read(
+                socket_, asio::buffer(reader.length_mask_buffer.data(), length),
+                [bytes, this, self = this->shared_from_this()](const std::error_code& code,
                                                                std::size_t bytes_transferred) {
                     if (code) {
                         close();
@@ -239,22 +239,22 @@ protected:
         auto& reader = ws_helper_->ws_reader_;
         const std::size_t length{reader.payload_buffer.size()};
         reader.payload_buffer.resize(reader.length + length);
-        boost::asio::async_read(socket_, boost::asio::buffer(reader.payload_buffer.data() + length, reader.length),
-                                [this, self = this->shared_from_this()](const boost::system::error_code& code,
-                                                                        std::size_t bytes_transferred) {
-                                    if (code) {
-                                        close();
-                                    } else {
-                                        auto& reader = ws_helper_->ws_reader_;
-                                        auto& payload_buffer = reader.payload_buffer;
-                                        if (reader.has_mask) {
-                                            for (std::size_t i{0}; i < reader.length; ++i) {
-                                                payload_buffer[i] ^= reader.mask[i % 4];
-                                            }
-                                        }
-                                        handle_ws();
-                                    }
-                                });
+        asio::async_read(
+            socket_, asio::buffer(reader.payload_buffer.data() + length, reader.length),
+            [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+                if (code) {
+                    close();
+                } else {
+                    auto& reader = ws_helper_->ws_reader_;
+                    auto& payload_buffer = reader.payload_buffer;
+                    if (reader.has_mask) {
+                        for (std::size_t i{0}; i < reader.length; ++i) {
+                            payload_buffer[i] ^= reader.mask[i % 4];
+                        }
+                    }
+                    handle_ws();
+                }
+            });
     }
 
     void handle_ws() {
@@ -339,20 +339,20 @@ protected:
     }
 
     void do_write_ws() {
-        boost::asio::async_write(socket_, ws_helper_->buffer_,
-                                 [this, self = this->shared_from_this()](const boost::system::error_code& code,
-                                                                         std::size_t bytes_transferred) {
-                                     if (code) {
-                                         close();
-                                     } else {
-                                         std::unique_lock<std::mutex> lock{ws_helper_->write_queue_mutex_};
-                                         ws_helper_->write_queue_.pop();
-                                         if (!ws_helper_->write_queue_.empty()) {
-                                             lock.unlock();
-                                             do_send_ws_frame();
-                                         }
-                                     }
-                                 });
+        asio::async_write(
+            socket_, ws_helper_->buffer_,
+            [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+                if (code) {
+                    close();
+                } else {
+                    std::unique_lock<std::mutex> lock{ws_helper_->write_queue_mutex_};
+                    ws_helper_->write_queue_.pop();
+                    if (!ws_helper_->write_queue_.empty()) {
+                        lock.unlock();
+                        do_send_ws_frame();
+                    }
+                }
+            });
     }
 
     detail::ws_frame& get_frame() {
@@ -367,7 +367,7 @@ protected:
 
     struct ws_helper final {
         std::shared_ptr<websocket> websocket_;
-        boost::asio::streambuf buffer_;
+        asio::streambuf buffer_;
         detail::ws_reader ws_reader_;
         std::queue<detail::ws_frame> write_queue_;
         std::mutex write_queue_mutex_;
@@ -388,7 +388,7 @@ public:
     connection(Args&&... args) noexcept : base_connection<Socket, connection<Socket>>{std::forward<Args>(args)...} {
     }
 
-    boost::asio::ip::tcp::socket& socket() noexcept {
+    asio::ip::tcp::socket& socket() noexcept {
         return this->socket_;
     }
 
@@ -406,7 +406,7 @@ public:
     connection(Args&&... args) noexcept : base_connection{std::forward<Args>(args)...} {
     }
 
-    boost::asio::ip::tcp::socket& socket() noexcept {
+    asio::ip::tcp::socket& socket() noexcept {
         return socket_.next_layer();
     }
 
@@ -420,8 +420,8 @@ public:
 
 private:
     void do_handshake() {
-        socket_.async_handshake(boost::asio::ssl::stream_base::server,
-                                [this, self = this->shared_from_this()](const boost::system::error_code& code) {
+        socket_.async_handshake(asio::ssl::stream_base::server,
+                                [this, self = this->shared_from_this()](const std::error_code& code) {
                                     if (code) {
                                         close();
                                     } else {

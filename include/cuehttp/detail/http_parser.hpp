@@ -43,33 +43,32 @@ public:
     int parse(std::size_t size) noexcept {
         data_size_ += size;
         int code{0};
-        if (continue_parse_body_) {
-            auto& request = context_.req();
-            request.body_ = std::string_view{
-                request.body_.data(),
-                std::min(request.content_length_, data_size_ - (request.body_.data() - buffer_.data()))};
-            if (request.body_.length() < request.content_length_) {
-                expand();
-                continue_parse_body_ = true;
-                code = -2;
-            } else {
-                continue_parse_body_ = false;
-                parse_size_ += request.content_length_;
-                if (data_size_ > parse_size_) {
-                    buffer_offset_ = parse_size_;
-                    code = -3;
-                } else {
-                    code = 0;
-                }
-            }
-        } else {
+        // if (continue_parse_body_) {
+        //     auto& request = context_.req();
+        //     request.body_ = std::string_view{
+        //         request.body_.data(),
+        //         std::min(request.content_length_, data_size_ - (request.body_.data() - buffer_.data()))};
+        //     if (request.body_.length() < request.content_length_) {
+        //         expand();
+        //         continue_parse_body_ = true;
+        //         code = -2;
+        //     } else {
+        //         continue_parse_body_ = false;
+        //         parse_size_ += request.content_length_;
+        //         if (data_size_ > parse_size_) {
+        //             code = -3;
+        //         } else {
+        //             code = 0;
+        //         }
+        //     }
+        // } else {
             phr_num_headers_ = HTTP_REQUEST_HEADER_SIZE;
             if (size == 0) {
                 context_.reset();
             }
-            code = phr_parse_request(buffer_.data() + buffer_offset_, buffer_.size() - buffer_offset_, &phr_method_,
-                                     &phr_method_len_, &phr_path_, &phr_path_len_, &phr_minor_version_, phr_headers_,
-                                     &phr_num_headers_, pre_length_);
+            code = phr_parse_request(buffer_.data(), data_size_, &phr_method_, &phr_method_len_, &phr_path_,
+                                     &phr_path_len_, &phr_minor_version_, phr_headers_, &phr_num_headers_, parse_size_);
+            // std::cout << "phr code: " << code << std::endl;
             if (code > 0) {
                 // method
                 parse_size_ += code;
@@ -86,77 +85,80 @@ public:
                 }
 
                 // content_length
-                auto length_value = request.get("content-length");
-                if (!length_value.empty()) {
-                    request.content_length_ = std::atoll(length_value.data());
-                }
+                // auto length_value = request.get("content-length");
+                // if (!length_value.empty()) {
+                //     request.content_length_ = std::atoll(length_value.data());
+                // }
 
                 // minor_version
                 request.minor_version_ = phr_minor_version_;
 
                 // websocket
-                if (phr_minor_version_ && detail::utils::iequals(request.get("connection"), "upgrade")) {
-                    const auto upgrade = request.get("upgrade");
-                    const auto key = request.get("sec-websocket-key");
-                    const auto ws_version = request.get("sec-websocket-version");
-                    if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
-                        request.websocket_ = true;
-                    }
-                }
+                // if (phr_minor_version_ && detail::utils::iequals(request.get("connection"), "upgrade")) {
+                //     const auto upgrade = request.get("upgrade");
+                //     const auto key = request.get("sec-websocket-key");
+                //     const auto ws_version = request.get("sec-websocket-version");
+                //     if (!key.empty() && !ws_version.empty() && detail::utils::iequals(upgrade, "websocket")) {
+                //         request.websocket_ = true;
+                //     }
+                // }
 
                 // cookie
-                const auto cookie_string = request.get("cookie");
-                if (!cookie_string.empty()) {
-                    request.cookies_.parse(cookie_string);
-                }
+                // const auto cookie_string = request.get("cookie");
+                // if (!cookie_string.empty()) {
+                //     request.cookies_.parse(cookie_string);
+                // }
 
-                if (request.content_length_ > 0) {
-                    request.body_ =
-                        std::string_view{buffer_.data() + code, std::min(request.content_length_, data_size_ - code)};
-                    if (request.body_.length() < request.content_length_) {
-                        expand();
-                        continue_parse_body_ = true;
-                        code = -2;
-                    } else {
-                        parse_size_ += request.content_length_;
-                        continue_parse_body_ = false;
-                        if (data_size_ > parse_size_) {
-                            code = -3;
-                        } else {
-                            code = 0;
-                        }
-                    }
-                } else {
+                // if (request.content_length_ > 0) {
+                //     request.body_ =
+                //         std::string_view{buffer_.data() + code, std::min(request.content_length_, data_size_ - code)};
+                //     if (request.body_.length() < request.content_length_) {
+                //         expand();
+                //         continue_parse_body_ = true;
+                //         code = -2;
+                //     } else {
+                //         parse_size_ += request.content_length_;
+                //         continue_parse_body_ = false;
+                //         if (data_size_ > parse_size_) {
+                //             code = -3;
+                //         } else {
+                //             code = 0;
+                //         }
+                //     }
+                // } else {
+                    // std::cout << "code: " << code << " data_size_: " << data_size_ << " parse_size_: " << parse_size_
+                            //   << std::endl;
                     if (data_size_ > parse_size_) {
                         code = -3;
-                    } else {
+                    } else if (data_size_ == parse_size_) {
                         code = 0;
+                    } else {
+                        // std::cout << "00000" << std::endl;
+                        expand();
+                        code = -2;
                     }
-                }
-            } else if (code == -2) {
-                expand();
+                // }
+            // } else if (code == -2) {
+            //     expand();
             }
-        }
+        // }
 
         return code;
     }
 
     void reset() noexcept {
-        if (buffer_.size() != HTTP_REQUEST_BUFFER_SIZE) {
-            buffer_.resize(HTTP_REQUEST_BUFFER_SIZE);
-        }
         data_size_ = 0;
         parse_size_ = 0;
         buffer_offset_ = 0;
-        pre_length_ = 0;
         continue_parse_body_ = false;
         context_.reset();
     }
 
 private:
     void expand() {
+        // std::cout << "expanding" << std::endl;
         const char* data{buffer_.data()};
-        pre_length_ = buffer_.size();
+        buffer_offset_ = buffer_.size();
         buffer_.resize(buffer_.size() * 2);
         auto& request = context_.req();
         std::vector<std::pair<std::string_view, std::string_view>> headers;
@@ -190,13 +192,12 @@ private:
         }
     }
 
-    static constexpr std::size_t HTTP_REQUEST_BUFFER_SIZE{2048};
+    static constexpr std::size_t HTTP_REQUEST_BUFFER_SIZE{4096};
     static constexpr std::size_t HTTP_REQUEST_HEADER_SIZE{64};
     std::vector<char> buffer_;
     std::size_t data_size_{0};
     std::size_t parse_size_{0};
     std::size_t buffer_offset_{0};
-    std::size_t pre_length_{0};
     const char* phr_method_{nullptr};
     const char* phr_path_{nullptr};
     int phr_pret_;

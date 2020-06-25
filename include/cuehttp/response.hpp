@@ -186,12 +186,12 @@ public:
         const auto line = detail::utils::get_response_line(minor_version_ * 1000 + status_);
         str.append(line.data(), line.length());
         // headers
-        const auto now = std::chrono::steady_clock::now();
-        if (now - last_time_ > std::chrono::seconds{1}) {
-            last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
-            last_time_ = now;
-        }
-        str.append(last_gmt_date_str_);
+        // const auto now = std::chrono::steady_clock::now();
+        // if (now - last_time_ > std::chrono::seconds{1}) {
+        //     last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
+        //     last_time_ = now;
+        // }
+        // str.append(last_gmt_date_str_);
         for (const auto& header : headers_) {
             str.append(header.first);
             str.append(": ");
