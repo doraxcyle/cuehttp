@@ -25,7 +25,7 @@
 #include <vector>
 #include <type_traits>
 
-#include "cuehttp/deps/asio/asio.hpp"
+#include "asio.hpp"
 #ifdef ENABLE_HTTPS
 #include "cuehttp/deps/asio/asio/ssl.hpp"
 #endif // ENABLE_HTTPS
@@ -129,10 +129,6 @@ public:
         auto connector =
             std::make_shared<detail::connection<Socket>>(this->handler_, detail::engines::default_engines().get());
         this->acceptor_->async_accept(connector->socket(), [this, connector](const std::error_code& code) {
-            if (!this->acceptor_->is_open()) {
-                return;
-            }
-
             if (!code) {
                 connector->socket().set_option(asio::ip::tcp::no_delay{true});
                 connector->run();
@@ -174,10 +170,6 @@ public:
         auto connector = std::make_shared<detail::connection<detail::https_socket>>(
             this->handler_, detail::engines::default_engines().get(), ssl_context_);
         this->acceptor_->async_accept(connector->socket(), [this, connector](const std::error_code& code) {
-            if (!this->acceptor_->is_open()) {
-                return;
-            }
-
             if (!code) {
                 connector->socket().set_option(asio::ip::tcp::no_delay{true});
                 connector->run();

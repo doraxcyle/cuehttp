@@ -196,7 +196,7 @@ public:
                 parse_url();
 
                 // content_length
-                auto length_value = get("content-length");
+                const auto length_value = get("content-length");
                 if (!length_value.empty()) {
                     content_length_ = std::atoll(length_value.data());
                 }

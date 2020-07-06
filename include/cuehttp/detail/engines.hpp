@@ -23,8 +23,8 @@
 #include <memory>
 #include <vector>
 #include <atomic>
-#include <boost/asio.hpp>
 
+#include "cuehttp/deps/asio/asio.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
