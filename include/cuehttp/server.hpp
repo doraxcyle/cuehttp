@@ -25,7 +25,7 @@
 #include <vector>
 #include <type_traits>
 
-#include "asio.hpp"
+#include "cuehttp/deps/asio/asio.hpp"
 #ifdef ENABLE_HTTPS
 #include "cuehttp/deps/asio/asio/ssl.hpp"
 #endif // ENABLE_HTTPS
