@@ -87,12 +87,12 @@ protected:
             asio::buffer(buffer.first, buffer.second),
             [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
                 if (code) {
-                    close();
-                } else {
-                    reply_str_.reserve(4096);
-                    const auto finished = parse(bytes_transferred);
-                    reply(finished);
+                    return;
                 }
+
+                reply_str_.reserve(4096);
+                const auto finished = parse(bytes_transferred);
+                reply(finished);
             });
     }
 
@@ -151,19 +151,19 @@ protected:
                           [this, finished, self = this->shared_from_this()](const std::error_code& code,
                                                                             std::size_t bytes_transferred) {
                               if (code) {
-                                  close();
+                                  return;
+                              }
+
+                              reply_str_.clear();
+                              if (ws_helper_) {
+                                  ws_handshake_ = true;
+                                  ws_helper_->websocket_->emit(detail::ws_event::open);
+                                  do_read_ws_header();
                               } else {
-                                  reply_str_.clear();
-                                  if (ws_helper_) {
-                                      ws_handshake_ = true;
-                                      ws_helper_->websocket_->emit(detail::ws_event::open);
-                                      do_read_ws_header();
-                                  } else {
-                                      if (finished) {
-                                          context_.reset();
-                                      }
-                                      do_read();
+                                  if (finished) {
+                                      context_.reset();
                                   }
+                                  do_read();
                               }
                           });
     }

@@ -22,7 +22,6 @@
 
 #include <memory>
 #include <vector>
-#include <atomic>
 
 #include "cuehttp/deps/asio/asio.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
@@ -49,11 +48,7 @@ public:
     }
 
     asio::io_service& get() noexcept {
-        std::size_t index{index_++};
-        if (index == io_contexts_.size()) {
-            index = index_ = 0;
-        }
-        return *io_contexts_[index];
+        return *io_contexts_[index_++ % io_contexts_.size()];
     }
 
     void run() {
@@ -79,7 +74,7 @@ private:
     std::vector<std::shared_ptr<asio::io_service>> io_contexts_;
     std::vector<std::shared_ptr<asio::io_service::work>> workers_;
     std::vector<std::thread> run_threads_;
-    std::atomic_size_t index_{0};
+    std::size_t index_{0};
 };
 
 } // namespace detail
