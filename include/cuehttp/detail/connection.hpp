@@ -45,7 +45,9 @@ public:
           handler_{std::move(handler)} {
     }
 
-    virtual ~base_connection() = default;
+    virtual ~base_connection() {
+        close();
+    }
 
 #ifdef ENABLE_HTTPS
     template <typename S = Socket, typename = std::enable_if_t<!std::is_same<std::decay_t<S>, http_socket>::value>>
