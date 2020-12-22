@@ -50,49 +50,49 @@ namespace cue {
 namespace http {
 namespace detail {
 
-template <std::size_t Bits>
+template <std::size_t _Bits>
 struct swapper;
 
 template <>
 struct swapper<1> {
-    inline static std::uint8_t swap_be(std::uint8_t value) {
+    static std::uint8_t swap_be(std::uint8_t value) {
         return value;
     }
 
-    inline static std::uint8_t swap_le(std::uint8_t value) {
+    static std::uint8_t swap_le(std::uint8_t value) {
         return value;
     }
 };
 
 template <>
 struct swapper<2> {
-    inline static std::uint16_t swap_be(std::uint16_t value) {
+    static std::uint16_t swap_be(std::uint16_t value) {
         return bswap_be(16)(value);
     }
 
-    inline static std::uint16_t swap_le(std::uint16_t value) {
+    static std::uint16_t swap_le(std::uint16_t value) {
         return bswap_le(16)(value);
     }
 };
 
 template <>
 struct swapper<4> {
-    inline static std::uint32_t swap_be(std::uint32_t value) {
+    static std::uint32_t swap_be(std::uint32_t value) {
         return bswap_be(32)(value);
     }
 
-    inline static std::uint32_t swap_le(std::uint32_t value) {
+    static std::uint32_t swap_le(std::uint32_t value) {
         return bswap_le(32)(value);
     }
 };
 
 template <>
 struct swapper<8> {
-    inline static std::uint64_t swap_be(std::uint64_t value) {
+    static std::uint64_t swap_be(std::uint64_t value) {
         return bswap_be(64)(value);
     }
 
-    inline static std::uint64_t swap_le(std::uint64_t value) {
+    static std::uint64_t swap_le(std::uint64_t value) {
         return bswap_le(64)(value);
     }
 };

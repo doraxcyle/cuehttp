@@ -66,9 +66,9 @@ public:
 
     session() = delete;
 
-    template <typename Options>
-    session(Options&& options, context& context, cookies& cookies) noexcept
-        : options_{std::forward<Options>(options)}, context_{context}, cookies_{cookies} {
+    template <typename _Options>
+    session(_Options&& options, context& context, cookies& cookies) noexcept
+        : options_{std::forward<_Options>(options)}, context_{context}, cookies_{cookies} {
         if (!options_.genid) {
             options_.genid = [this]() { return options_.prefix + detail::utils::uuid(); };
         }
@@ -80,9 +80,9 @@ public:
         }
     }
 
-    template <typename Key, typename Value>
-    void set(Key&& key, Value&& value) {
-        datas_[std::forward<Key>(key)] = std::forward<Value>(value);
+    template <typename _Key, typename _Value>
+    void set(_Key&& key, _Value&& value) {
+        datas_[std::forward<_Key>(key)] = std::forward<_Value>(value);
     }
 
     std::string_view get(const std::string& key) const noexcept {

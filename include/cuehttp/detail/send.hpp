@@ -52,9 +52,9 @@ struct options final {
 
 namespace detail {
 
-template <typename Path, typename Options>
-inline void send_file(context& ctx, Path&& path, Options&& options) {
-    std::string temp_path = std::forward<Path>(path);
+template <typename _Path, typename _Options>
+inline void send_file(context& ctx, _Path&& path, _Options&& options) {
+    std::string temp_path = std::forward<_Path>(path);
     assert(!temp_path.empty());
 
     if (temp_path.back() == '/' && !options.index.empty()) {
@@ -142,9 +142,9 @@ inline void send_file(context& ctx, Path&& path, Options&& options) {
     }
 }
 
-template <typename Path>
-inline void send_file(context& ctx, Path&& path) {
-    send_file(ctx, std::forward<Path>(path), send::options{});
+template <typename _Path>
+inline void send_file(context& ctx, _Path&& path) {
+    send_file(ctx, std::forward<_Path>(path), send::options{});
 }
 
 } // namespace detail

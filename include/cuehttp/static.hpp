@@ -25,9 +25,9 @@
 namespace cue {
 namespace http {
 
-template <typename... Args>
-inline auto use_static(Args&&... args) noexcept {
-    return detail::use_static(std::forward<Args>(args)...);
+template <typename... _Args>
+inline auto use_static(_Args&&... args) noexcept {
+    return detail::use_static(std::forward<_Args>(args)...);
 }
 
 } // namespace http

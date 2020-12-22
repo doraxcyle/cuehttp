@@ -34,10 +34,11 @@ namespace cue {
 namespace http {
 namespace detail {
 
-template <typename Socket, typename T>
-class base_connection : public std::enable_shared_from_this<base_connection<Socket, T>>, safe_noncopyable {
+template <typename _Socket, typename _Ty>
+class base_connection : public std::enable_shared_from_this<base_connection<_Socket, _Ty>>, safe_noncopyable {
 public:
-    template <typename S = Socket, typename = std::enable_if_t<std::is_same<std::decay_t<S>, http_socket>::value>>
+    template <typename Socket = _Socket,
+              typename = std::enable_if_t<std::is_same<std::decay_t<Socket>, http_socket>::value>>
     base_connection(std::function<void(context&)> handler, asio::io_service& io_service) noexcept
         : socket_{io_service},
           context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
@@ -48,7 +49,8 @@ public:
     virtual ~base_connection() = default;
 
 #ifdef ENABLE_HTTPS
-    template <typename S = Socket, typename = std::enable_if_t<!std::is_same<std::decay_t<S>, http_socket>::value>>
+    template <typename Socket = _Socket,
+              typename = std::enable_if_t<!std::is_same<std::decay_t<Socket>, http_socket>::value>>
     base_connection(std::function<void(context&)> handler, asio::io_service& io_service,
                     asio::ssl::context& ssl_context) noexcept
         : socket_{io_service, ssl_context},
@@ -59,7 +61,7 @@ public:
 #endif // ENABLE_HTTPS
 
     asio::ip::tcp::socket& socket() noexcept {
-        return static_cast<T&>(*this).socket();
+        return static_cast<_Ty&>(*this).socket();
     }
 
     void run() {
@@ -78,7 +80,7 @@ protected:
     }
 
     void do_read() {
-        static_cast<T&>(*this).do_read_real();
+        static_cast<_Ty&>(*this).do_read_real();
     }
 
     void do_read_some() {
@@ -377,7 +379,7 @@ protected:
         std::mutex write_queue_mutex_;
     };
 
-    Socket socket_;
+    _Socket socket_;
     context context_;
     std::function<void(context&)> handler_;
     std::string reply_str_;
@@ -385,11 +387,11 @@ protected:
     std::unique_ptr<ws_helper> ws_helper_;
 };
 
-template <typename Socket = http_socket>
-class connection final : public base_connection<Socket, connection<Socket>>, safe_noncopyable {
+template <typename _Socket = http_socket>
+class connection final : public base_connection<_Socket, connection<_Socket>>, safe_noncopyable {
 public:
-    template <typename... Args>
-    connection(Args&&... args) noexcept : base_connection<Socket, connection<Socket>>{std::forward<Args>(args)...} {
+    template <typename... _Args>
+    connection(_Args&&... args) noexcept : base_connection<_Socket, connection<_Socket>>{std::forward<_Args>(args)...} {
     }
 
     asio::ip::tcp::socket& socket() noexcept {
@@ -406,8 +408,8 @@ template <>
 class connection<https_socket> final : public base_connection<https_socket, connection<https_socket>>,
                                        safe_noncopyable {
 public:
-    template <typename... Args>
-    connection(Args&&... args) noexcept : base_connection{std::forward<Args>(args)...} {
+    template <typename... _Args>
+    connection(_Args&&... args) noexcept : base_connection{std::forward<_Args>(args)...} {
     }
 
     asio::ip::tcp::socket& socket() noexcept {

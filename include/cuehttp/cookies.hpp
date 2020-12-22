@@ -79,27 +79,27 @@ public:
         return name == name_ ? value_ : ""sv;
     }
 
-    template <typename... Args>
-    void set(Args&&... args) {
-        set_impl(std::forward<Args>(args)...);
+    template <typename... _Args>
+    void set(_Args&&... args) {
+        set_impl(std::forward<_Args>(args)...);
     }
 
     std::string_view name() const noexcept {
         return name_;
     }
 
-    template <typename Name>
-    void name(Name&& name) {
-        name_ = std::forward<Name>(name);
+    template <typename _Name>
+    void name(_Name&& name) {
+        name_ = std::forward<_Name>(name);
     }
 
     std::string_view value() const noexcept {
         return value_;
     }
 
-    template <typename Value>
-    void value(Value&& value) {
-        value_ = std::forward<Value>(value);
+    template <typename _Value>
+    void value(_Value&& value) {
+        value_ = std::forward<_Value>(value);
     }
 
     int max_age() const noexcept {
@@ -114,27 +114,27 @@ public:
         return options_.expires;
     }
 
-    template <typename Expires>
-    void expires(Expires&& expires) {
-        options_.expires = std::forward<Expires>(expires);
+    template <typename _Expires>
+    void expires(_Expires&& expires) {
+        options_.expires = std::forward<_Expires>(expires);
     }
 
     std::string_view path() const noexcept {
         return options_.path;
     }
 
-    template <typename Path>
-    void path(Path&& path) {
-        options_.path = std::forward<Path>(path);
+    template <typename _Path>
+    void path(_Path&& path) {
+        options_.path = std::forward<_Path>(path);
     }
 
     std::string_view domain() const noexcept {
         return options_.domain;
     }
 
-    template <typename Domain>
-    void domain(Domain&& domain) {
-        options_.domain = std::forward<Domain>(domain);
+    template <typename _Domain>
+    void domain(_Domain&& domain) {
+        options_.domain = std::forward<_Domain>(domain);
     }
 
     bool secure() const noexcept {
@@ -176,17 +176,17 @@ public:
 private:
     friend std::ostream& operator<<(std::ostream& os, const cookie& cookie);
 
-    template <typename Name, typename Value>
-    void set_impl(Name&& name, Value&& value) {
-        name_ = std::forward<Name>(name);
-        value_ = std::forward<Value>(value);
+    template <typename _Name, typename _Value>
+    void set_impl(_Name&& name, _Value&& value) {
+        name_ = std::forward<_Name>(name);
+        value_ = std::forward<_Value>(value);
     }
 
-    template <typename Name, typename Value, typename Options>
-    void set_impl(Name&& name, Value&& value, Options&& options) {
-        name_ = std::forward<Name>(name);
-        value_ = std::forward<Value>(value);
-        options_ = std::forward<Options>(options);
+    template <typename _Name, typename _Value, typename _Options>
+    void set_impl(_Name&& name, _Value&& value, _Options&& options) {
+        name_ = std::forward<_Name>(name);
+        value_ = std::forward<_Value>(value);
+        options_ = std::forward<_Options>(options);
     }
 
     void parse_cookie(std::string_view cookie_string) {
@@ -277,10 +277,10 @@ public:
         return cookie_.get(name);
     }
 
-    template <typename... Args>
-    void set(Args&&... args) {
+    template <typename... _Args>
+    void set(_Args&&... args) {
         cookie temp;
-        temp.set(std::forward<Args>(args)...);
+        temp.set(std::forward<_Args>(args)...);
         cookies_.emplace_back(std::move(temp));
     }
 

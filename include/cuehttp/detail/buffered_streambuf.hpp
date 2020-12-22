@@ -29,7 +29,7 @@ namespace cue {
 namespace http {
 namespace detail {
 
-template <std::size_t BUFFER_SIZE = 1024 * 1024>
+template <std::size_t _BUFFER_SIZE = 1024 * 1024>
 class buffered_streambuf : public std::streambuf, safe_noncopyable {
 public:
     explicit buffered_streambuf(std::ios::openmode mode) noexcept : mode_{mode} {
@@ -84,7 +84,7 @@ public:
             return traits_type::eof();
         }
 
-        const auto n = read_from(buffer_.begin(), BUFFER_SIZE);
+        const auto n = read_from(buffer_.begin(), _BUFFER_SIZE);
         if (n <= 0) {
             return traits_type::eof();
         }
@@ -125,7 +125,7 @@ private:
         return traits_type::eof();
     }
 
-    std::array<char, BUFFER_SIZE> buffer_;
+    std::array<char, _BUFFER_SIZE> buffer_;
     std::ios::openmode mode_;
 };
 

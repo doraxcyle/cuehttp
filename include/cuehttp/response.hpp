@@ -70,9 +70,9 @@ public:
         return ""sv;
     }
 
-    template <typename Field, typename Value>
-    void set(Field&& field, Value&& value) {
-        headers_.emplace_back(std::make_pair(std::forward<Field>(field), std::forward<Value>(value)));
+    template <typename _Field, typename _Value>
+    void set(_Field&& field, _Value&& value) {
+        headers_.emplace_back(std::make_pair(std::forward<_Field>(field), std::forward<_Value>(value)));
     }
 
     void set(const std::map<std::string, std::string>& headers) {
@@ -97,12 +97,12 @@ public:
         }
     }
 
-    template <typename Url>
-    void redirect(Url&& url) {
+    template <typename _Url>
+    void redirect(_Url&& url) {
         if (status_ == 404) {
             status(302);
         }
-        set("Location", std::forward<Url>(url));
+        set("Location", std::forward<_Url>(url));
     }
 
     bool keepalive() const noexcept {
@@ -118,9 +118,9 @@ public:
         }
     }
 
-    template <typename ContentType>
-    void type(ContentType&& content_type) {
-        set("Content-Type", std::forward<ContentType>(content_type));
+    template <typename _ContentType>
+    void type(_ContentType&& content_type) {
+        set("Content-Type", std::forward<_ContentType>(content_type));
     }
 
     std::uint64_t length() const noexcept {
@@ -146,9 +146,9 @@ public:
         }
     }
 
-    template <typename Body>
-    void body(Body&& body) {
-        body_ = std::forward<Body>(body);
+    template <typename _Body>
+    void body(_Body&& body) {
+        body_ = std::forward<_Body>(body);
         length(body_.length());
     }
 

@@ -38,11 +38,11 @@ public:
         ws_handler_ = [](context& ctx) { ctx.status(503); };
     }
 
-    inline static void run() {
+    static void run() {
         detail::engines::default_engines().run();
     }
 
-    inline static void stop() {
+    static void stop() {
         detail::engines::default_engines().stop();
     }
 
@@ -53,11 +53,11 @@ public:
         return *this;
     }
 
-    template <typename Host>
-    cuehttp& listen(unsigned port, Host&& host) {
+    template <typename _Host>
+    cuehttp& listen(unsigned port, _Host&& host) {
         assert(port != 0);
         server_ = http::create_server(callback());
-        server_.listen(port, std::forward<Host>(host));
+        server_.listen(port, std::forward<_Host>(host));
         return *this;
     }
 
@@ -71,9 +71,9 @@ public:
         };
     }
 
-    template <typename... Args>
-    cuehttp& use(Args&&... args) {
-        middlewares_.use(std::forward<Args>(args)...);
+    template <typename... _Args>
+    cuehttp& use(_Args&&... args) {
+        middlewares_.use(std::forward<_Args>(args)...);
         return *this;
     }
 

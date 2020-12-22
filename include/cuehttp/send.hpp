@@ -25,9 +25,9 @@
 namespace cue {
 namespace http {
 
-template <typename... Args>
-inline void send_file(Args&&... args) {
-    detail::send_file(std::forward<Args>(args)...);
+template <typename... _Args>
+inline void send_file(_Args&&... args) {
+    detail::send_file(std::forward<_Args>(args)...);
 }
 
 } // namespace http

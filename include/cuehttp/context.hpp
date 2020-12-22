@@ -108,28 +108,28 @@ public:
         response_.status(status);
     }
 
-    template <typename Url>
-    void redirect(Url&& url) {
-        response_.redirect(std::forward<Url>(url));
+    template <typename _Url>
+    void redirect(_Url&& url) {
+        response_.redirect(std::forward<_Url>(url));
     }
 
-    template <typename Field, typename Value>
-    void set(Field&& field, Value&& value) {
-        response_.set(std::forward<Field>(field), std::forward<Value>(value));
+    template <typename _Field, typename _Value>
+    void set(_Field&& field, _Value&& value) {
+        response_.set(std::forward<_Field>(field), std::forward<_Value>(value));
     }
 
-    template <typename Headers>
-    void set(Headers&& headers) {
-        response_.set(std::forward<Headers>(headers));
+    template <typename _Headers>
+    void set(_Headers&& headers) {
+        response_.set(std::forward<_Headers>(headers));
     }
 
     void remove(std::string_view field) noexcept {
         response_.remove(field);
     }
 
-    template <typename ContentType>
-    void type(ContentType&& content_type) {
-        response_.type(std::forward<ContentType>(content_type));
+    template <typename _ContentType>
+    void type(_ContentType&& content_type) {
+        response_.type(std::forward<_ContentType>(content_type));
     }
 
     void length(std::uint64_t content_length) noexcept {
@@ -149,9 +149,9 @@ public:
         return *session_;
     }
 
-    template <typename Options>
-    void session(Options&& options) {
-        session_ = std::make_unique<class session>(std::forward<Options>(options), *this, cookies_);
+    template <typename _Options>
+    void session(_Options&& options) {
+        session_ = std::make_unique<class session>(std::forward<_Options>(options), *this, cookies_);
     }
 
     void chunked() noexcept {
@@ -162,9 +162,9 @@ public:
         return response_.has_body();
     }
 
-    template <typename Body>
-    void body(Body&& body) {
-        response_.body(std::forward<Body>(body));
+    template <typename _Body>
+    void body(_Body&& body) {
+        response_.body(std::forward<_Body>(body));
     }
 
     void body(const char* buffer, std::size_t size) {

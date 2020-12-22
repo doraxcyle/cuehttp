@@ -38,9 +38,9 @@ public:
         callback_ = middlewares_.callback();
     }
 
-    template <typename... Args>
-    ws_server& use(Args&&... args) {
-        middlewares_.use(std::forward<Args>(args)...);
+    template <typename... _Args>
+    ws_server& use(_Args&&... args) {
+        middlewares_.use(std::forward<_Args>(args)...);
         return *this;
     }
 

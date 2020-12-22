@@ -24,7 +24,7 @@ namespace cue {
 namespace http {
 namespace detail {
 
-template <unsigned U>
+template <unsigned _Count>
 class noncopyable_ {
 protected:
     noncopyable_() noexcept = default;

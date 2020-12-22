@@ -28,9 +28,9 @@
 namespace cue {
 namespace http {
 
-template <typename Options>
-inline auto use_session(Options&& options) noexcept {
-    return [options = std::forward<Options>(options)](context& ctx, std::function<void()> next) {
+template <typename _Options>
+inline auto use_session(_Options&& options) noexcept {
+    return [options = std::forward<_Options>(options)](context& ctx, std::function<void()> next) {
         const bool auto_commit{options.auto_commit};
         if (!ctx.session_enabled()) {
             ctx.session(std::move(options));

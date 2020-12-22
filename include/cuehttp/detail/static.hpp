@@ -45,10 +45,10 @@ struct options final {
 
 namespace detail {
 
-template <typename Root, typename Options>
-inline auto use_static(Root&& root, Options&& options) noexcept {
-    return [root = std::forward<Root>(root), options = std::forward<Options>(options)](context& ctx,
-                                                                                       std::function<void()> next) {
+template <typename _Root, typename _Options>
+inline auto use_static(_Root&& root, _Options&& options) noexcept {
+    return [root = std::forward<_Root>(root), options = std::forward<_Options>(options)](context& ctx,
+                                                                                         std::function<void()> next) {
         static const auto handler = [](context& ctx, std::string&& root, const static_file::options& static_options) {
             if (ctx.method() != "GET" && ctx.method() != "HEAD") {
                 return;
@@ -79,9 +79,9 @@ inline auto use_static(Root&& root, Options&& options) noexcept {
     };
 }
 
-template <typename Root>
-inline auto use_static(Root&& root) noexcept {
-    return use_static(std::forward<Root>(root), static_file::options{});
+template <typename _Root>
+inline auto use_static(_Root&& root) noexcept {
+    return use_static(std::forward<_Root>(root), static_file::options{});
 }
 
 } // namespace detail

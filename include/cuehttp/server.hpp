@@ -37,7 +37,7 @@
 namespace cue {
 namespace http {
 
-template <typename Socket, typename T>
+template <typename _Socket, typename _Ty>
 class base_server : safe_noncopyable {
 public:
     base_server() noexcept {
@@ -70,10 +70,10 @@ public:
         return *this;
     }
 
-    template <typename Host>
-    base_server& listen(unsigned port, Host&& host) {
+    template <typename _Host>
+    base_server& listen(unsigned port, _Host&& host) {
         assert(port != 0);
-        listen_impl(asio::ip::tcp::resolver::query{std::forward<Host>(host), std::to_string(port)});
+        listen_impl(asio::ip::tcp::resolver::query{std::forward<_Host>(host), std::to_string(port)});
         return *this;
     }
 
@@ -94,20 +94,20 @@ protected:
     }
 
     void do_accept() {
-        static_cast<T&>(*this).do_accept_real();
+        static_cast<_Ty&>(*this).do_accept_real();
     }
 
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor_;
     std::function<void(context&)> handler_;
 };
 
-template <typename Socket = detail::http_socket>
-class server final : public base_server<Socket, server<Socket>>, safe_noncopyable {
+template <typename _Socket = detail::http_socket>
+class server final : public base_server<_Socket, server<_Socket>>, safe_noncopyable {
 public:
     server() noexcept = default;
 
     explicit server(std::function<void(context&)> handler) noexcept
-        : base_server<Socket, server<Socket>>{std::move(handler)} {
+        : base_server<_Socket, server<_Socket>>{std::move(handler)} {
     }
 
     server(server&& rhs) noexcept {
@@ -121,13 +121,13 @@ public:
 
     void swap(server& rhs) noexcept {
         if (this != std::addressof(rhs)) {
-            base_server<Socket, server<Socket>>::swap(rhs);
+            base_server<_Socket, server<_Socket>>::swap(rhs);
         }
     }
 
     void do_accept_real() {
         auto connector =
-            std::make_shared<detail::connection<Socket>>(this->handler_, detail::engines::default_engines().get());
+            std::make_shared<detail::connection<_Socket>>(this->handler_, detail::engines::default_engines().get());
         this->acceptor_->async_accept(connector->socket(), [this, connector](const std::error_code& code) {
             if (!code) {
                 connector->socket().set_option(asio::ip::tcp::no_delay{true});
@@ -187,9 +187,9 @@ private:
 using http_t = server<detail::http_socket>;
 
 struct http final : safe_noncopyable {
-    template <typename... Args>
-    inline static http_t create_server(Args&&... args) noexcept {
-        return http_t{std::forward<Args>(args)...};
+    template <typename... _Args>
+    static http_t create_server(_Args&&... args) noexcept {
+        return http_t{std::forward<_Args>(args)...};
     }
 };
 
@@ -197,9 +197,9 @@ struct http final : safe_noncopyable {
 using https_t = server<detail::https_socket>;
 
 struct https final : safe_noncopyable {
-    template <typename... Args>
-    inline static https_t create_server(Args&&... args) noexcept {
-        return https_t{std::forward<Args>(args)...};
+    template <typename... _Args>
+    static https_t create_server(_Args&&... args) noexcept {
+        return https_t{std::forward<_Args>(args)...};
     }
 };
 #endif // ENABLE_HTTPS

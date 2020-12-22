@@ -54,25 +54,25 @@ public:
         return shared_from_this();
     }
 
-    template <typename Func>
-    void on_open(Func&& func) {
-        open_handlers_.emplace_back(std::forward<Func>(func));
+    template <typename _Func>
+    void on_open(_Func&& func) {
+        open_handlers_.emplace_back(std::forward<_Func>(func));
     }
 
-    template <typename Func>
-    void on_close(Func&& func) {
-        close_handlers_.emplace_back(std::forward<Func>(func));
+    template <typename _Func>
+    void on_close(_Func&& func) {
+        close_handlers_.emplace_back(std::forward<_Func>(func));
     }
 
-    template <typename Func>
-    void on_message(Func&& func) {
-        msg_handlers_.emplace_back(std::forward<Func>(func));
+    template <typename _Func>
+    void on_message(_Func&& func) {
+        msg_handlers_.emplace_back(std::forward<_Func>(func));
     }
 
-    template <typename Msg>
-    void send(Msg&& msg, ws_send::options options = {}) {
+    template <typename _Msg>
+    void send(_Msg&& msg, ws_send::options options = {}) {
         send_handler_({options.fin, options.binary ? detail::ws_opcode::binary : detail::ws_opcode::text, options.mask,
-                       std::forward<Msg>(msg)});
+                       std::forward<_Msg>(msg)});
     }
 
     void close() {

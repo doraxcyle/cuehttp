@@ -41,15 +41,15 @@ public:
         return handler_;
     }
 
-    template <typename... Args>
-    void use(Args&&... args) {
-        use_impl(std::forward<Args>(args)...);
+    template <typename... _Args>
+    void use(_Args&&... args) {
+        use_impl(std::forward<_Args>(args)...);
     }
 
 private:
-    template <typename List, typename = std::enable_if_t<detail::is_middleware_list<List>::value>>
-    void use_impl(List&& list) {
-        use_append_list(std::forward<List>(list));
+    template <typename _List, typename = std::enable_if_t<detail::is_middleware_list<_List>::value>>
+    void use_impl(_List&& list) {
+        use_append_list(std::forward<_List>(list));
     }
 
     void use_append_list(const std::vector<std::function<void(context&, std::function<void()>)>>& handlers) {
@@ -61,56 +61,58 @@ private:
                             std::make_move_iterator(handlers.end()));
     }
 
-    template <typename Func, typename = std::enable_if_t<!std::is_member_function_pointer<Func>::value>>
-    std::enable_if_t<detail::is_middleware<Func>::value, std::true_type> use_impl(Func&& func) {
-        use_with_next(std::forward<Func>(func));
+    template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
+    std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> use_impl(_Func&& func) {
+        use_with_next(std::forward<_Func>(func));
         return std::true_type{};
     }
 
-    template <typename T, typename Func, typename Self, typename = std::enable_if_t<std::is_same<T*, Self>::value>>
-    void use_impl(Func (T::*func)(context&, std::function<void()>), Self self) {
+    template <typename _Ty, typename _Func, typename _Self,
+              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+    void use_impl(_Func (_Ty::*func)(context&, std::function<void()>), _Self self) {
         use_with_next(func, self);
     }
 
-    template <typename T, typename Func>
-    void use_impl(Func (T::*func)(context&, std::function<void()>)) noexcept {
-        use_with_next(func, (T*)nullptr);
+    template <typename _Ty, typename _Func>
+    void use_impl(_Func (_Ty::*func)(context&, std::function<void()>)) noexcept {
+        use_with_next(func, (_Ty*)nullptr);
     }
 
-    template <typename Func, typename = std::enable_if_t<!std::is_member_function_pointer<Func>::value>>
-    std::enable_if_t<detail::is_middleware_without_next<Func>::value, std::false_type> use_impl(Func&& func) {
-        use_without_next(std::forward<Func>(func));
+    template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
+    std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> use_impl(_Func&& func) {
+        use_without_next(std::forward<_Func>(func));
         return std::false_type{};
     }
 
-    template <typename T, typename Func, typename Self, typename = std::enable_if_t<std::is_same<T*, Self>::value>>
-    void use_impl(Func (T::*func)(context&), Self self) {
+    template <typename _Ty, typename _Func, typename _Self,
+              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+    void use_impl(_Func (_Ty::*func)(context&), _Self self) {
         use_without_next(func, self);
     }
 
-    template <typename T, typename Func>
-    void use_impl(Func (T::*func)(context&)) {
-        use_without_next(func, (T*)nullptr);
+    template <typename _Ty, typename _Func>
+    void use_impl(_Func (_Ty::*func)(context&)) {
+        use_without_next(func, (_Ty*)nullptr);
     }
 
-    template <typename Func>
-    void use_with_next(Func&& func) {
-        middlewares_.emplace_back(std::forward<Func>(func));
+    template <typename _Func>
+    void use_with_next(_Func&& func) {
+        middlewares_.emplace_back(std::forward<_Func>(func));
     }
 
-    template <typename T, typename Func, typename Self>
-    void use_with_next(Func T::*func, Self self) {
+    template <typename _Ty, typename _Func, typename _Self>
+    void use_with_next(_Func _Ty::*func, _Self self) {
         middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
                 (self->*func)(ctx, std::move(next));
             } else {
-                (T{}.*func)(ctx, std::move(next));
+                (_Ty{}.*func)(ctx, std::move(next));
             }
         });
     }
 
-    template <typename Func>
-    void use_without_next(Func&& func) {
+    template <typename _Func>
+    void use_without_next(_Func&& func) {
         middlewares_.emplace_back(
             [func = static_cast<std::function<void(context&)>>(func)](context& ctx, std::function<void()> next) {
                 func(ctx);
@@ -118,13 +120,13 @@ private:
             });
     }
 
-    template <typename T, typename Func, typename Self>
-    void use_without_next(Func T::*func, Self self) {
+    template <typename _Ty, typename _Func, typename _Self>
+    void use_without_next(_Func _Ty::*func, _Self self) {
         middlewares_.emplace_back([func, self](context& ctx, std::function<void()> next) {
             if (self) {
                 (self->*func)(ctx);
             } else {
-                (T{}.*func)(ctx);
+                (_Ty{}.*func)(ctx);
             }
             next();
         });

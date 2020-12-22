@@ -33,14 +33,14 @@ struct compress final {
         int level{8};
     };
 
-    inline static bool deflate(std::string_view src, std::string& dst, int level = 8) {
+    static bool deflate(std::string_view src, std::string& dst, int level = 8) {
         return detail::gzip::compress(src, dst, level);
     }
 };
 
-template <typename Options>
-inline auto use_compress(Options&& options) noexcept {
-    return [options = std::forward<Options>(options)](context& ctx, std::function<void()> next) {
+template <typename _Options>
+inline auto use_compress(_Options&& options) noexcept {
+    return [options = std::forward<_Options>(options)](context& ctx, std::function<void()> next) {
         // call next
         next();
 
