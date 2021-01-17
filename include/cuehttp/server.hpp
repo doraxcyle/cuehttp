@@ -85,7 +85,7 @@ protected:
     void listen_impl(asio::ip::tcp::resolver::query&& query) {
         auto& engines = detail::engines::default_engines();
         asio::ip::tcp::endpoint endpoint{*asio::ip::tcp::resolver{engines.get()}.resolve(query)};
-        acceptor_ = std::make_shared<asio::ip::tcp::acceptor>(engines.get());
+        acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(engines.get());
         acceptor_->open(endpoint.protocol());
         acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true));
         acceptor_->bind(endpoint);
@@ -97,7 +97,7 @@ protected:
         static_cast<_Ty&>(*this).do_accept_real();
     }
 
-    std::shared_ptr<asio::ip::tcp::acceptor> acceptor_;
+    std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
     std::function<void(context&)> handler_;
 };
 

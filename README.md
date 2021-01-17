@@ -8,7 +8,7 @@
 
 ## 简介
 
-cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP/WebSocket框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[llhttp](https://github.com/nodejs/llhttp)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
+cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP/WebSocket框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[picohttpparser](https://github.com/h2o/picohttpparser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
 
 cuehttp内部包含一组中间件函数，注册的中间件会根据中间件的添加顺序执行。在中间件中也可以选择是否进行下一个中间件的执行或改变中间件内的行为执行顺序。
 
