@@ -3,12 +3,12 @@
 [![Build Status](https://travis-ci.org/xcyl/cuehttp.svg?branch=master)](https://travis-ci.org/xcyl/cuehttp)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a11b810953524ef98b92452a3c611d6f)](https://www.codacy.com/manual/xcyl/cuehttp?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xcyl/cuehttp&amp;utm_campaign=Badge_Grade)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/xcyl/cuehttp.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xcyl/cuehttp/context:cpp)
-[![language](https://img.shields.io/badge/language-C++14-red.svg)](https://en.wikipedia.org/wiki/C++14)
+[![language](https://img.shields.io/badge/language-C++17-red.svg)](https://en.wikipedia.org/wiki/C++17)
 [![GitHub license](https://img.shields.io/badge/license-Apache2.0-blue.svg)](https://raw.githubusercontent.com/xcyl/cuehttp/master/LICENSE)
 
 ## 简介
 
-cuehttp是一个使用Modern C++(C++14)编写的跨平台、高性能、易用的HTTP/WebSocket框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[picohttpparser](https://github.com/h2o/picohttpparser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
+cuehttp是一个使用Modern C++(C++17)编写的跨平台、高性能、易用的HTTP/WebSocket框架。基于中间件模式可以方便、高效、优雅的增加功能。cuehttp基于boost.asio开发，使用[picohttpparser](https://github.com/h2o/picohttpparser)进行HTTP协议解析。内部依赖了[nlohmann/json](https://github.com/nlohmann/json)。
 
 cuehttp内部包含一组中间件函数，注册的中间件会根据中间件的添加顺序执行。在中间件中也可以选择是否进行下一个中间件的执行或改变中间件内的行为执行顺序。
 
@@ -20,7 +20,7 @@ cuehttp内部包含一组中间件函数，注册的中间件会根据中间件�
 
 ## 使用
 
-cuehttp依赖boost，以及使用最低依赖C++14。cuehttp是header-only的，`#include <cuehttp.hpp>`即可使用。HTTPS需要依赖OpenSSL，并且在编译的时候添加`ENABLE_HTTPS`宏。
+cuehttp依赖boost，以及使用最低依赖C++17。cuehttp是header-only的，`#include <cuehttp.hpp>`即可使用。HTTPS需要依赖OpenSSL，并且在编译的时候添加`ENABLE_HTTPS`宏。
 
 ### hello cuehttp!
 
