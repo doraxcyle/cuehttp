@@ -30,7 +30,7 @@
 namespace cue {
 namespace http {
 
-static std::string_view ws_magic_key{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
+static const std::string_view ws_magic_key{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 
 class ws_server final : safe_noncopyable {
  public:

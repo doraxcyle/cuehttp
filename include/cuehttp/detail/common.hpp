@@ -100,9 +100,9 @@ struct ws_frame final {
 };
 
 // global variables
-static std::string_view g_cookie_expires_date{"Thu, 01 Jan 1970 00:00:00 GMT"};
+static const std::string_view g_cookie_expires_date{"Thu, 01 Jan 1970 00:00:00 GMT"};
 
-static std::string_view g_methods[] = {"DELETE", "GET", "HEAD", "POST", "PUT", "CONNECT", "OPTIONS"};
+static const std::string_view g_methods[] = {"DELETE", "GET", "HEAD", "POST", "PUT", "CONNECT", "OPTIONS"};
 
 // meta utilities
 template <typename _Ty>
