@@ -8,7 +8,7 @@ set(SRC main.cpp)
 include_directories(${PROJECT_SOURCE_DIR}/../../include)
 include_directories(${PROJECT_SOURCE_DIR}/../../include/cuehttp/deps/asio)
 
-find_package(Boost COMPONENTS system filesystem REQUIRED)
+find_package(Boost COMPONENTS system REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 option(ENABLE_HTTPS "enable https" ON)

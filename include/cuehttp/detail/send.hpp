@@ -20,7 +20,7 @@
 #ifndef CUEHTTP_DETAIL_SEND_HPP_
 #define CUEHTTP_DETAIL_SEND_HPP_
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -62,7 +62,7 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
   }
 
   try {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     fs::path real_path{options.root};
     real_path += temp_path;
     if (!options.hidden && real_path.filename().string()[0] == '.') {
@@ -97,7 +97,8 @@ inline void send_file(context& ctx, _Path&& path, _Options&& options) {
     file.seekg(std::ios_base::beg);
 #ifdef ENABLE_GZIP
     std::string data;
-    if (static_cast<std::uint64_t>(file_size) >= options.gzip_threshold && options.gzip) {
+    if (static_cast<std::uint64_t>(file_size) >= options.gzip_threshold &&
+        options.gzip) {
       std::ostringstream tmp;
       tmp << file.rdbuf();
       std::string dst;
