@@ -17,28 +17,28 @@
  * under the License.
  */
 
-#include <cuehttp.hpp>
+#include "cuehttp.hpp"
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    cuehttp app;
-    app.use([](context& ctx) {
-        ctx.type("text/html");
-        ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
-        ctx.status(200);
-    });
+  cuehttp app;
+  app.use([](context& ctx) {
+    ctx.type("text/html");
+    ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+    ctx.status(200);
+  });
 
-    // both
-    auto http_server = http::create_server(app.callback());
-    http_server.listen(10001);
+  // both
+  auto http_server = http::create_server(app.callback());
+  http_server.listen(10001);
 
 #ifdef ENABLE_HTTPS
-    auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
-    https_server.listen(443);
-#endif // #ifdef ENABLE_HTTPS
+  auto https_server = https::create_server(app.callback(), "server.key", "server.crt");
+  https_server.listen(443);
+#endif  // #ifdef ENABLE_HTTPS
 
-    cuehttp::run();
+  cuehttp::run();
 
-    return 0;
+  return 0;
 }

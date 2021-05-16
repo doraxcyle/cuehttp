@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 project(cuehttp)
 
@@ -13,20 +13,20 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 option(ENABLE_GZIP "enable gzip" ON)
 if (ENABLE_GZIP)
-    message("-- enable gzip")
-    find_package(ZLIB REQUIRED)
-    add_definitions(-DENABLE_GZIP)
+  message("-- enable gzip")
+  find_package(ZLIB REQUIRED)
+  add_definitions(-DENABLE_GZIP)
 endif ()
 
 add_executable(${PROJECT_NAME} ${SRC})
 
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 if (ENABLE_GZIP)
-    target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
 endif ()
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} ws2_32 wsock32)
+  target_link_libraries(${PROJECT_NAME} ws2_32 wsock32)
 else ()
-    target_link_libraries(${PROJECT_NAME} pthread)
+  target_link_libraries(${PROJECT_NAME} pthread)
 endif ()

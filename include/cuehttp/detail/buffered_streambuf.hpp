@@ -20,8 +20,8 @@
 #ifndef CUEHTTP_BUFFERED_STREAMBUF_HPP_
 #define CUEHTTP_BUFFERED_STREAMBUF_HPP_
 
-#include <streambuf>
 #include <array>
+#include <streambuf>
 
 #include "cuehttp/detail/noncopyable.hpp"
 
@@ -31,106 +31,98 @@ namespace detail {
 
 template <std::size_t _BUFFER_SIZE = 1024 * 1024>
 class buffered_streambuf : public std::streambuf, safe_noncopyable {
-public:
-    explicit buffered_streambuf(std::ios::openmode mode) noexcept : mode_{mode} {
-        setp(buffer_.begin(), buffer_.end());
-        setg(buffer_.begin(), buffer_.begin(), buffer_.begin());
+ public:
+  explicit buffered_streambuf(std::ios::openmode mode) noexcept : mode_{mode} {
+    setp(buffer_.begin(), buffer_.end());
+    setg(buffer_.begin(), buffer_.begin(), buffer_.begin());
+  }
+
+  virtual ~buffered_streambuf() { sync(); }
+
+  buffered_streambuf(buffered_streambuf&& rhs) noexcept { assgin_rv(std::move(rhs)); }
+
+  buffered_streambuf& operator=(buffered_streambuf&& rhs) noexcept {
+    if (this != std::addressof(rhs)) {
+      sync();
+    }
+    assgin_rv(std::move(rhs));
+    return *this;
+  }
+
+  void swap(buffered_streambuf& rhs) noexcept {
+    if (this != std::addressof(rhs)) {
+      std::streambuf::swap(rhs);
+      std::swap(mode_, rhs.mode_);
+      buffer_.swap(rhs.buffer_);
+    }
+  }
+
+  int_type overflow(int_type c = traits_type::eof()) final {
+    if (!(mode_ & std::ios_base::out)) {
+      return traits_type::eof();
     }
 
-    virtual ~buffered_streambuf() {
-        sync();
+    if (flush() == traits_type::eof()) {
+      return traits_type::eof();
     }
 
-    buffered_streambuf(buffered_streambuf&& rhs) noexcept {
-        assgin_rv(std::move(rhs));
+    if (traits_type::eq_int_type(c, traits_type::eof())) {
+      return traits_type::not_eof(c);
     }
 
-    buffered_streambuf& operator=(buffered_streambuf&& rhs) noexcept {
-        if (this != std::addressof(rhs)) {
-            sync();
-        }
-        assgin_rv(std::move(rhs));
-        return *this;
+    *pptr() = traits_type::to_char_type(c);
+    pbump(1);
+    return c;
+  }
+
+  int_type underflow() final {
+    if (!(mode_ & std::ios_base::in)) {
+      return traits_type::eof();
     }
 
-    void swap(buffered_streambuf& rhs) noexcept {
-        if (this != std::addressof(rhs)) {
-            std::streambuf::swap(rhs);
-            std::swap(mode_, rhs.mode_);
-            buffer_.swap(rhs.buffer_);
-        }
+    const auto n = read_from(buffer_.begin(), _BUFFER_SIZE);
+    if (n <= 0) {
+      return traits_type::eof();
     }
+    setg(buffer_.begin(), buffer_.begin(), buffer_.begin() + n);
+    return traits_type::to_int_type(*pptr());
+  }
 
-    int_type overflow(int_type c = traits_type::eof()) final {
-        if (!(mode_ & std::ios_base::out)) {
-            return traits_type::eof();
-        }
-
-        if (flush() == traits_type::eof()) {
-            return traits_type::eof();
-        }
-
-        if (traits_type::eq_int_type(c, traits_type::eof())) {
-            return traits_type::not_eof(c);
-        }
-
-        *pptr() = traits_type::to_char_type(c);
-        pbump(1);
-        return c;
+  int sync() final {
+    if (flush() == traits_type::eof()) {
+      return traits_type::eof();
     }
+    return 0;
+  }
 
-    int_type underflow() final {
-        if (!(mode_ & std::ios_base::in)) {
-            return traits_type::eof();
-        }
-
-        const auto n = read_from(buffer_.begin(), _BUFFER_SIZE);
-        if (n <= 0) {
-            return traits_type::eof();
-        }
-        setg(buffer_.begin(), buffer_.begin(), buffer_.begin() + n);
-        return traits_type::to_int_type(*pptr());
+ private:
+  void assign_rv(buffered_streambuf&& rhs) noexcept {
+    if (this != std::addressof(rhs)) {
+      setp(nullptr, nullptr);
+      setg(nullptr, nullptr, nullptr);
+      swap(rhs);
     }
+  }
 
-    int sync() final {
-        if (flush() == traits_type::eof()) {
-            return traits_type::eof();
-        }
-        return 0;
+  virtual int read_from(char* buffer, std::streamsize size) { return 0; }
+
+  virtual int write_to(const char* buffer, std::streamsize size) { return 0; }
+
+  int flush() {
+    const auto n = pptr() - pbase();
+    if (write_to(pbase(), n) == n) {
+      pbump(-n);
+      return n;
     }
+    return traits_type::eof();
+  }
 
-private:
-    void assign_rv(buffered_streambuf&& rhs) noexcept {
-        if (this != std::addressof(rhs)) {
-            setp(nullptr, nullptr);
-            setg(nullptr, nullptr, nullptr);
-            swap(rhs);
-        }
-    }
-
-    virtual int read_from(char* buffer, std::streamsize size) {
-        return 0;
-    }
-
-    virtual int write_to(const char* buffer, std::streamsize size) {
-        return 0;
-    }
-
-    int flush() {
-        const auto n = pptr() - pbase();
-        if (write_to(pbase(), n) == n) {
-            pbump(-n);
-            return n;
-        }
-        return traits_type::eof();
-    }
-
-    std::array<char, _BUFFER_SIZE> buffer_;
-    std::ios::openmode mode_;
+  std::array<char, _BUFFER_SIZE> buffer_;
+  std::ios::openmode mode_;
 };
 
-} // namespace detail
-} // namespace http
-} // namespace cue
+}  // namespace detail
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_BUFFERED_STREAMBUF_HPP_
+#endif  // CUEHTTP_BUFFERED_STREAMBUF_HPP_

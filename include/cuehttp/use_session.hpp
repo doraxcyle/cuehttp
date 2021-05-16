@@ -30,21 +30,21 @@ namespace http {
 
 template <typename _Options>
 inline auto use_session(_Options&& options) noexcept {
-    return [options = std::forward<_Options>(options)](context& ctx, std::function<void()> next) {
-        const bool auto_commit{options.auto_commit};
-        if (!ctx.session_enabled()) {
-            ctx.session(std::move(options));
-        }
-        // call next
-        next();
-        // auto commit session
-        if (auto_commit) {
-            ctx.session().commit();
-        }
-    };
+  return [options = std::forward<_Options>(options)](context& ctx, std::function<void()> next) {
+    const bool auto_commit{options.auto_commit};
+    if (!ctx.session_enabled()) {
+      ctx.session(std::move(options));
+    }
+    // call next
+    next();
+    // auto commit session
+    if (auto_commit) {
+      ctx.session().commit();
+    }
+  };
 }
 
-} // namespace http
-} // namespace cue
+}  // namespace http
+}  // namespace cue
 
-#endif // CUE_HTTP_USE_SESSION_HPP_
+#endif  // CUE_HTTP_USE_SESSION_HPP_

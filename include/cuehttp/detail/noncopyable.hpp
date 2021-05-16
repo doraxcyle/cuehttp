@@ -26,21 +26,21 @@ namespace detail {
 
 template <unsigned _Count>
 class noncopyable_ {
-protected:
-    noncopyable_() noexcept = default;
-    ~noncopyable_() = default;
+ protected:
+  noncopyable_() noexcept = default;
+  ~noncopyable_() = default;
 
-    noncopyable_(const noncopyable_&) = delete;
-    noncopyable_& operator=(const noncopyable_&) = delete;
+  noncopyable_(const noncopyable_&) = delete;
+  noncopyable_& operator=(const noncopyable_&) = delete;
 };
 
-} // namespace detail
+}  // namespace detail
 
 #define safe_noncopyable \
-private                  \
-    detail::noncopyable_<__COUNTER__>
+ private                 \
+  detail::noncopyable_<__COUNTER__>
 
-} // namespace http
-} // namespace cue
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_NONCOPYABLE_HPP_
+#endif  // CUEHTTP_NONCOPYABLE_HPP_

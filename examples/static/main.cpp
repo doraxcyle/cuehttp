@@ -17,15 +17,15 @@
  * under the License.
  */
 
-#include <cuehttp.hpp>
+#include "cuehttp.hpp"
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    cuehttp app;
-    app.use(use_static("C:/Users/xcyl/Desktop"));
+  cuehttp app;
+  app.use(use_static("C:/Users/xcyl/Desktop"));
 
-    app.listen(10001).run();
+  app.listen(10001).run();
 
-    return 0;
+  return 0;
 }

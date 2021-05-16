@@ -20,18 +20,18 @@
 #ifndef CUEHTTP_HPP_
 #define CUEHTTP_HPP_
 
+#include "cuehttp/compress.hpp"
 #include "cuehttp/context.hpp"
 #include "cuehttp/cookies.hpp"
+#include "cuehttp/cuehttp.hpp"
 #include "cuehttp/request.hpp"
 #include "cuehttp/response.hpp"
-#include "cuehttp/server.hpp"
-#include "cuehttp/cuehttp.hpp"
-#include "cuehttp/ws_server.hpp"
-#include "cuehttp/websocket.hpp"
 #include "cuehttp/router.hpp"
-#include "cuehttp/use_session.hpp"
-#include "cuehttp/compress.hpp"
 #include "cuehttp/send.hpp"
+#include "cuehttp/server.hpp"
 #include "cuehttp/static.hpp"
+#include "cuehttp/use_session.hpp"
+#include "cuehttp/websocket.hpp"
+#include "cuehttp/ws_server.hpp"
 
-#endif // CUEHTTP_HPP_
+#endif  // CUEHTTP_HPP_

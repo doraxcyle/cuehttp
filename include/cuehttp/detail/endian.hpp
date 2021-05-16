@@ -26,8 +26,6 @@
 #define cue_bswap_16 _byteswap_ushort
 #define cue_bswap_32 _byteswap_ulong
 #define cue_bswap_64 _byteswap_uint64
-#define bswap_be(bits) cue_bswap_##bits
-#define bswap_le(bits)
 #elif defined(__APPLE__)
 #include <libkern/OSByteOrder.h>
 #define cue_bswap_16 OSSwapInt16
@@ -37,13 +35,14 @@
 #define cue_bswap_16 __builtin_bswap16
 #define cue_bswap_32 __builtin_bswap32
 #define cue_bswap_64 __builtin_bswap64
+#endif
+
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define bswap_be(bits) cue_bswap_##bits
 #define bswap_le(bits)
 #else
 #define bswap_be(bits)
 #define bswap_le(bits) cue_bswap_##bits
-#endif
 #endif
 
 namespace cue {
@@ -55,74 +54,58 @@ struct swapper;
 
 template <>
 struct swapper<1> {
-    static std::uint8_t swap_be(std::uint8_t value) {
-        return value;
-    }
+  static std::uint8_t swap_be(std::uint8_t value) { return value; }
 
-    static std::uint8_t swap_le(std::uint8_t value) {
-        return value;
-    }
+  static std::uint8_t swap_le(std::uint8_t value) { return value; }
 };
 
 template <>
 struct swapper<2> {
-    static std::uint16_t swap_be(std::uint16_t value) {
-        return bswap_be(16)(value);
-    }
+  static std::uint16_t swap_be(std::uint16_t value) { return bswap_be(16)(value); }
 
-    static std::uint16_t swap_le(std::uint16_t value) {
-        return bswap_le(16)(value);
-    }
+  static std::uint16_t swap_le(std::uint16_t value) { return bswap_le(16)(value); }
 };
 
 template <>
 struct swapper<4> {
-    static std::uint32_t swap_be(std::uint32_t value) {
-        return bswap_be(32)(value);
-    }
+  static std::uint32_t swap_be(std::uint32_t value) { return bswap_be(32)(value); }
 
-    static std::uint32_t swap_le(std::uint32_t value) {
-        return bswap_le(32)(value);
-    }
+  static std::uint32_t swap_le(std::uint32_t value) { return bswap_le(32)(value); }
 };
 
 template <>
 struct swapper<8> {
-    static std::uint64_t swap_be(std::uint64_t value) {
-        return bswap_be(64)(value);
-    }
+  static std::uint64_t swap_be(std::uint64_t value) { return bswap_be(64)(value); }
 
-    static std::uint64_t swap_le(std::uint64_t value) {
-        return bswap_le(64)(value);
-    }
+  static std::uint64_t swap_le(std::uint64_t value) { return bswap_le(64)(value); }
 };
 
-template <typename T>
-inline T from_be(T t) {
-    const auto value = static_cast<std::make_unsigned_t<T>>(t);
-    return static_cast<T>(swapper<sizeof(value)>::swap_be(t));
+template <typename _Ty>
+inline _Ty from_be(_Ty t) {
+  const auto value = static_cast<std::make_unsigned_t<_Ty>>(t);
+  return static_cast<_Ty>(swapper<sizeof(value)>::swap_be(t));
 }
 
-template <typename T>
-inline T to_be(T t) {
-    const auto value = static_cast<std::make_unsigned_t<T>>(t);
-    return static_cast<T>(swapper<sizeof(value)>::swap_be(t));
+template <typename _Ty>
+inline _Ty to_be(_Ty t) {
+  const auto value = static_cast<std::make_unsigned_t<_Ty>>(t);
+  return static_cast<_Ty>(swapper<sizeof(value)>::swap_be(t));
 }
 
-template <typename T>
-inline T from_le(T t) {
-    const auto value = static_cast<std::make_unsigned_t<T>>(t);
-    return static_cast<T>(swapper<sizeof(value)>::swap_le(t));
+template <typename _Ty>
+inline _Ty from_le(_Ty t) {
+  const auto value = static_cast<std::make_unsigned_t<_Ty>>(t);
+  return static_cast<_Ty>(swapper<sizeof(value)>::swap_le(t));
 }
 
-template <typename T>
-inline T to_le(T t) {
-    const auto value = static_cast<std::make_unsigned_t<T>>(t);
-    return static_cast<T>(swapper<sizeof(value)>::swap_le(t));
+template <typename _Ty>
+inline _Ty to_le(_Ty t) {
+  const auto value = static_cast<std::make_unsigned_t<_Ty>>(t);
+  return static_cast<_Ty>(swapper<sizeof(value)>::swap_le(t));
 }
 
-} // namespace detail
-} // namespace http
-} // namespace cue
+}  // namespace detail
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_ENDIAN_HPP_
+#endif  // CUEHTTP_ENDIAN_HPP_

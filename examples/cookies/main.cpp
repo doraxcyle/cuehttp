@@ -17,27 +17,27 @@
  * under the License.
  */
 
-#include <cuehttp.hpp>
+#include "cuehttp.hpp"
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    router route;
-    route.get("/cookie", [](context& ctx) {
-        cookie::options options;
-        options.domain = "127.0.0.1:10001";
-        options.path = "/cookie";
-        options.max_age = 60 * 60 * 24 * 1000;
-        ctx.cookies().set("cue", "http", std::move(options));
-        ctx.type("text/html");
-        ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
-        ctx.status(200);
-    });
+  router route;
+  route.get("/cookie", [](context& ctx) {
+    cookie::options options;
+    options.domain = "127.0.0.1:10001";
+    options.path = "/cookie";
+    options.max_age = 60 * 60 * 24 * 1000;
+    ctx.cookies().set("cue", "http", std::move(options));
+    ctx.type("text/html");
+    ctx.body(R"(<h1>Hello, cuehttp!</h1>)");
+    ctx.status(200);
+  });
 
-    cuehttp app;
-    app.use(route.routes());
+  cuehttp app;
+  app.use(route.routes());
 
-    app.listen(10001).run();
+  app.listen(10001).run();
 
-    return 0;
+  return 0;
 }

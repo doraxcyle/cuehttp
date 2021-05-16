@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 project(session)
 
@@ -20,7 +20,7 @@ add_executable(${PROJECT_NAME} ${SRC})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} ws2_32 wsock32 bcrypt)
+  target_link_libraries(${PROJECT_NAME} ws2_32 wsock32 bcrypt)
 else ()
-    target_link_libraries(${PROJECT_NAME} pthread)
+  target_link_libraries(${PROJECT_NAME} pthread)
 endif ()

@@ -27,10 +27,10 @@ namespace http {
 
 template <typename... _Args>
 inline auto use_static(_Args&&... args) noexcept {
-    return detail::use_static(std::forward<_Args>(args)...);
+  return detail::use_static(std::forward<_Args>(args)...);
 }
 
-} // namespace http
-} // namespace cue
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_STATIC_HPP_
+#endif  // CUEHTTP_STATIC_HPP_

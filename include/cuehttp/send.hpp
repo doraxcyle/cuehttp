@@ -27,10 +27,10 @@ namespace http {
 
 template <typename... _Args>
 inline void send_file(_Args&&... args) {
-    detail::send_file(std::forward<_Args>(args)...);
+  detail::send_file(std::forward<_Args>(args)...);
 }
 
-} // namespace http
-} // namespace cue
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_SEND_HPP_
+#endif  // CUEHTTP_SEND_HPP_

@@ -24,370 +24,358 @@
 #include <unordered_map>
 
 #include "cuehttp/context.hpp"
-#include "cuehttp/detail/noncopyable.hpp"
 #include "cuehttp/detail/common.hpp"
+#include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
 namespace http {
 
 class router final : safe_noncopyable {
-public:
-    router() noexcept = default;
+ public:
+  router() noexcept = default;
 
-    template <typename _Prefix, typename = std::enable_if_t<!std::is_same<std::decay_t<_Prefix>, router>::value>>
-    explicit router(_Prefix&& prefix) noexcept : prefix_{std::forward<_Prefix>(prefix)} {
+  template <typename _Prefix, typename = std::enable_if_t<!std::is_same<std::decay_t<_Prefix>, router>::value>>
+  explicit router(_Prefix&& prefix) noexcept : prefix_{std::forward<_Prefix>(prefix)} {}
+
+  std::function<void(context&)> routes() const noexcept { return make_routes(); }
+
+  template <typename _Prefix>
+  router& prefix(_Prefix&& prefix) {
+    prefix_ = std::forward<_Prefix>(prefix);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& del(std::string_view path, _Args&&... args) {
+    register_impl("DEL", path, std::forward<_Args>(args)...);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& get(std::string_view path, _Args&&... args) {
+    register_impl("GET", path, std::forward<_Args>(args)...);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& head(std::string_view path, _Args&&... args) {
+    register_impl("HEAD", path, std::forward<_Args>(args)...);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& post(std::string_view path, _Args&&... args) {
+    register_impl("POST", path, std::forward<_Args>(args)...);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& put(std::string_view path, _Args&&... args) {
+    register_impl("PUT", path, std::forward<_Args>(args)...);
+    return *this;
+  }
+
+  template <typename... _Args>
+  router& all(std::string_view path, _Args&&... args) {
+    static const std::vector<std::string> methods{"DEL", "GET", "HEAD", "POST", "PUT"};
+    for (std::string method : methods) {
+      register_impl(std::move(method), path, std::forward<_Args>(args)...);
     }
+    return *this;
+  }
 
-    std::function<void(context&)> routes() const noexcept {
-        return make_routes();
-    }
+  template <typename... _Args>
+  router& redirect(_Args&&... args) {
+    redirect_impl(std::forward<_Args>(args)...);
+    return *this;
+  }
 
-    template <typename _Prefix>
-    router& prefix(_Prefix&& prefix) {
-        prefix_ = std::forward<_Prefix>(prefix);
-        return *this;
-    }
+  operator auto() const noexcept { return make_routes(); }
 
-    template <typename... _Args>
-    router& del(std::string_view path, _Args&&... args) {
-        register_impl("DEL", path, std::forward<_Args>(args)...);
-        return *this;
-    }
+ private:
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>,
+            typename... _Args>
+  void register_impl(std::string&& method, std::string_view path, _Func&& func, _Args&&... args) {
+    std::vector<std::function<void(context&, std::function<void()>)>> handlers;
+    register_multiple(handlers, std::forward<_Func>(func), std::forward<_Args>(args)...);
+    compose(std::move(method), path, std::move(handlers));
+  }
 
-    template <typename... _Args>
-    router& get(std::string_view path, _Args&&... args) {
-        register_impl("GET", path, std::forward<_Args>(args)...);
-        return *this;
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+            typename... _Args>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
+                     _Self self, _Args&&... args) {
+    std::vector<std::function<void(context&, std::function<void()>)>> handlers;
+    register_multiple(handlers, func, self, std::forward<_Args>(args)...);
+    compose(std::move(method), path, std::move(handlers));
+  }
 
-    template <typename... _Args>
-    router& head(std::string_view path, _Args&&... args) {
-        register_impl("HEAD", path, std::forward<_Args>(args)...);
-        return *this;
-    }
+  template <typename _Ty, typename _Func, typename... _Args>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
+                     _Args&&... args) {
+    std::vector<std::function<void(context&, std::function<void()>)>> handlers;
+    register_multiple(handlers, func, std::forward<_Args>(args)...);
+    compose(std::move(method), path, std::move(handlers));
+  }
 
-    template <typename... _Args>
-    router& post(std::string_view path, _Args&&... args) {
-        register_impl("POST", path, std::forward<_Args>(args)...);
-        return *this;
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+            typename... _Args>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self,
+                     _Args&&... args) {
+    std::vector<std::function<void(context&, std::function<void()>)>> handlers;
+    register_multiple(handlers, func, self, std::forward<_Args>(args)...);
+    compose(std::move(method), path, std::move(handlers));
+  }
 
-    template <typename... _Args>
-    router& put(std::string_view path, _Args&&... args) {
-        register_impl("PUT", path, std::forward<_Args>(args)...);
-        return *this;
-    }
+  template <typename _Ty, typename _Func, typename... _Args>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Args&&... args) {
+    std::vector<std::function<void(context&, std::function<void()>)>> handlers;
+    register_multiple(handlers, func, std::forward<_Args>(args)...);
+    compose(std::move(method), path, std::move(handlers));
+  }
 
-    template <typename... _Args>
-    router& all(std::string_view path, _Args&&... args) {
-        static const std::vector<std::string> methods{"DEL", "GET", "HEAD", "POST", "PUT"};
-        for (std::string method : methods) {
-            register_impl(std::move(method), path, std::forward<_Args>(args)...);
-        }
-        return *this;
-    }
+  template <typename _Func, typename... _Args>
+  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
+      std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
+    handlers.emplace_back(std::forward<_Func>(func));
+    register_multiple(handlers, std::forward<_Args>(args)...);
+    return std::true_type{};
+  }
 
-    template <typename... _Args>
-    router& redirect(_Args&&... args) {
-        redirect_impl(std::forward<_Args>(args)...);
-        return *this;
-    }
+  template <typename _Func, typename... _Args>
+  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
+      std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
+    handlers.emplace_back(std::forward<_Func>(func));
+    return std::true_type{};
+  }
 
-    operator auto() const noexcept {
-        return make_routes();
-    }
+  template <typename _Func, typename... _Args>
+  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
+      std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
+    handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
+      func(ctx);
+      next();
+    });
+    register_multiple(handlers, std::forward<_Args>(args)...);
+    return std::false_type{};
+  }
 
-private:
-    template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>,
-              typename... _Args>
-    void register_impl(std::string&& method, std::string_view path, _Func&& func, _Args&&... args) {
-        std::vector<std::function<void(context&, std::function<void()>)>> handlers;
-        register_multiple(handlers, std::forward<_Func>(func), std::forward<_Args>(args)...);
-        compose(std::move(method), path, std::move(handlers));
-    }
+  template <typename _Func, typename... _Args>
+  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
+      std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
+    handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
+      func(ctx);
+      next();
+    });
+    return std::false_type{};
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>, typename... _Args>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
-                       _Self self, _Args&&... args) {
-        std::vector<std::function<void(context&, std::function<void()>)>> handlers;
-        register_multiple(handlers, func, self, std::forward<_Args>(args)...);
-        compose(std::move(method), path, std::move(handlers));
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+            typename... _Args>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&, std::function<void()>), _Self self, _Args&&... args) {
+    handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
+      if (self) {
+        (self->*func)(ctx, std::move(next));
+      }
+    });
+    register_multiple(handlers, std::forward<_Args>(args)...);
+  }
 
-    template <typename _Ty, typename _Func, typename... _Args>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
-                       _Args&&... args) {
-        std::vector<std::function<void(context&, std::function<void()>)>> handlers;
-        register_multiple(handlers, func, std::forward<_Args>(args)...);
-        compose(std::move(method), path, std::move(handlers));
-    }
+  template <typename _Ty, typename _Func, typename... _Args>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&, std::function<void()>), _Args&&... args) {
+    handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx, std::move(next)); });
+    register_multiple(handlers, std::forward<_Args>(args)...);
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>, typename... _Args>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self,
-                       _Args&&... args) {
-        std::vector<std::function<void(context&, std::function<void()>)>> handlers;
-        register_multiple(handlers, func, self, std::forward<_Args>(args)...);
-        compose(std::move(method), path, std::move(handlers));
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+            typename... _Args>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&), _Self self, _Args&&... args) {
+    handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
+      if (self) {
+        (self->*func)(ctx);
+      }
+      next();
+    });
+    register_multiple(handlers, std::forward<_Args>(args)...);
+  }
 
-    template <typename _Ty, typename _Func, typename... _Args>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Args&&... args) {
-        std::vector<std::function<void(context&, std::function<void()>)>> handlers;
-        register_multiple(handlers, func, std::forward<_Args>(args)...);
-        compose(std::move(method), path, std::move(handlers));
-    }
+  template <typename _Ty, typename _Func, typename... _Args>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&), _Args&&... args) {
+    handlers.emplace_back([func](context& ctx, std::function<void()> next) {
+      (_Ty{}.*func)(ctx);
+      next();
+    });
+    register_multiple(handlers, std::forward<_Args>(args)...);
+  }
 
-    template <typename _Func, typename... _Args>
-    std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
-        std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
-        handlers.emplace_back(std::forward<_Func>(func));
-        register_multiple(handlers, std::forward<_Args>(args)...);
-        return std::true_type{};
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&, std::function<void()>), _Self self) {
+    handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
+      if (self) {
+        (self->*func)(ctx, std::move(next));
+      }
+    });
+  }
 
-    template <typename _Func, typename... _Args>
-    std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
-        std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
-        handlers.emplace_back(std::forward<_Func>(func));
-        return std::true_type{};
-    }
+  template <typename _Ty, typename _Func>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&, std::function<void()>)) {
+    handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx, std::move(next)); });
+  }
 
-    template <typename _Func, typename... _Args>
-    std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
-        std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
-        handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
-            func(ctx);
-            next();
-        });
-        register_multiple(handlers, std::forward<_Args>(args)...);
-        return std::false_type{};
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&), _Self self) {
+    handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
+      if (self) {
+        (self->*func)(ctx);
+      }
+    });
+  }
 
-    template <typename _Func, typename... _Args>
-    std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
-        std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
-        handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
-            func(ctx);
-            next();
-        });
-        return std::false_type{};
-    }
+  template <typename _Ty, typename _Func>
+  void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
+                         _Func (_Ty::*func)(context&)) {
+    handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx); });
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>, typename... _Args>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&, std::function<void()>), _Self self, _Args&&... args) {
-        handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (self->*func)(ctx, std::move(next));
-            }
-        });
-        register_multiple(handlers, std::forward<_Args>(args)...);
-    }
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
+  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_impl(std::string&& method,
+                                                                                      std::string_view path,
+                                                                                      _Func&& func) {
+    register_with_next(std::move(method), path, std::forward<_Func>(func));
+    return std::true_type{};
+  }
 
-    template <typename _Ty, typename _Func, typename... _Args>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&, std::function<void()>), _Args&&... args) {
-        handlers.emplace_back(
-            [func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx, std::move(next)); });
-        register_multiple(handlers, std::forward<_Args>(args)...);
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
+                     _Self self) {
+    register_with_next(std::move(method), path, func, self);
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>, typename... _Args>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&), _Self self, _Args&&... args) {
-        handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (self->*func)(ctx);
-            }
-            next();
-        });
-        register_multiple(handlers, std::forward<_Args>(args)...);
-    }
+  template <typename _Ty, typename _Func>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>)) {
+    register_with_next(std::move(method), path, func, (_Ty*)nullptr);
+  }
 
-    template <typename _Ty, typename _Func, typename... _Args>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&), _Args&&... args) {
-        handlers.emplace_back([func](context& ctx, std::function<void()> next) {
-            (_Ty{}.*func)(ctx);
-            next();
-        });
-        register_multiple(handlers, std::forward<_Args>(args)...);
-    }
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
+  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_impl(
+      std::string&& method, std::string_view path, _Func&& func) {
+    register_without_next(std::move(method), path, std::forward<_Func>(func));
+    return std::false_type{};
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&, std::function<void()>), _Self self) {
-        handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (self->*func)(ctx, std::move(next));
-            }
-        });
-    }
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self) {
+    register_without_next(std::move(method), path, func, self);
+  }
 
-    template <typename _Ty, typename _Func>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&, std::function<void()>)) {
-        handlers.emplace_back(
-            [func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx, std::move(next)); });
-    }
+  template <typename _Ty, typename _Func>
+  void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&)) {
+    register_without_next(std::move(method), path, func, (_Ty*)nullptr);
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&), _Self self) {
-        handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
-            if (self) {
-                (self->*func)(ctx);
-            }
-        });
-    }
+  template <typename _Func>
+  void register_with_next(std::string&& method, std::string_view path, _Func&& func) {
+    handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}),
+                      [func = std::forward<_Func>(func)](context& ctx) {
+                        const auto next = []() {};
+                        func(ctx, std::move(next));
+                      });
+  }
 
-    template <typename _Ty, typename _Func>
-    void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
-                           _Func (_Ty::*func)(context&)) {
-        handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx); });
-    }
+  template <typename _Ty, typename _Func, typename _Self>
+  void register_with_next(std::string&& method, std::string_view path, _Func _Ty::*func, _Self self) {
+    handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
+      const auto next = []() {};
+      if (self) {
+        (self->*func)(ctx, std::move(next));
+      } else {
+        (_Ty{}.*func)(ctx, std::move(next));
+      }
+    });
+  }
 
-    template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-    std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_impl(std::string&& method,
-                                                                                        std::string_view path,
-                                                                                        _Func&& func) {
-        register_with_next(std::move(method), path, std::forward<_Func>(func));
-        return std::true_type{};
-    }
+  template <typename _Func>
+  void register_without_next(std::string&& method, std::string_view path, _Func&& func) {
+    handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), std::forward<_Func>(func));
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
-                       _Self self) {
-        register_with_next(std::move(method), path, func, self);
-    }
+  template <typename _Ty, typename _Func, typename _Self>
+  void register_without_next(std::string&& method, std::string_view path, _Func _Ty::*func, _Self self) {
+    handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
+      if (self) {
+        (self->*func)(ctx);
+      } else {
+        (_Ty{}.*func)(ctx);
+      }
+    });
+  }
 
-    template <typename _Ty, typename _Func>
-    void register_impl(std::string&& method, std::string_view path,
-                       _Func (_Ty::*func)(context&, std::function<void()>)) {
-        register_with_next(std::move(method), path, func, (_Ty*)nullptr);
-    }
+  template <typename _Dest>
+  void redirect_impl(std::string_view path, _Dest&& destination) {
+    redirect_impl(path, std::forward<_Dest>(destination), 301);
+  }
 
-    template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-    std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_impl(
-        std::string&& method, std::string_view path, _Func&& func) {
-        register_without_next(std::move(method), path, std::forward<_Func>(func));
-        return std::false_type{};
-    }
+  template <typename _Dest>
+  void redirect_impl(std::string_view path, _Dest&& destination, unsigned status) {
+    all(path, [destination = std::forward<_Dest>(destination), status](context& ctx) {
+      ctx.redirect(std::move(destination));
+      ctx.status(status);
+    });
+  }
 
-    template <typename _Ty, typename _Func, typename _Self,
-              typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self) {
-        register_without_next(std::move(method), path, func, self);
-    }
+  void compose(std::string&& method, std::string_view path,
+               std::vector<std::function<void(context&, std::function<void()>)>>&& handlers) {
+    const auto handler = [handlers = std::move(handlers)](context& ctx) {
+      if (handlers.empty()) {
+        return;
+      }
 
-    template <typename _Ty, typename _Func>
-    void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&)) {
-        register_without_next(std::move(method), path, func, (_Ty*)nullptr);
-    }
-
-    template <typename _Func>
-    void register_with_next(std::string&& method, std::string_view path, _Func&& func) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}),
-                          [func = std::forward<_Func>(func)](context& ctx) {
-                              const auto next = []() {};
-                              func(ctx, std::move(next));
-                          });
-    }
-
-    template <typename _Ty, typename _Func, typename _Self>
-    void register_with_next(std::string&& method, std::string_view path, _Func _Ty::*func, _Self self) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
-            const auto next = []() {};
-            if (self) {
-                (self->*func)(ctx, std::move(next));
-            } else {
-                (_Ty{}.*func)(ctx, std::move(next));
-            }
-        });
-    }
-
-    template <typename _Func>
-    void register_without_next(std::string&& method, std::string_view path, _Func&& func) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), std::forward<_Func>(func));
-    }
-
-    template <typename _Ty, typename _Func, typename _Self>
-    void register_without_next(std::string&& method, std::string_view path, _Func _Ty::*func, _Self self) {
-        handlers_.emplace(std::move(method + "+" + prefix_ + std::string{path}), [func, self](context& ctx) {
-            if (self) {
-                (self->*func)(ctx);
-            } else {
-                (_Ty{}.*func)(ctx);
-            }
-        });
-    }
-
-    template <typename _Dest>
-    void redirect_impl(std::string_view path, _Dest&& destination) {
-        redirect_impl(path, std::forward<_Dest>(destination), 301);
-    }
-
-    template <typename _Dest>
-    void redirect_impl(std::string_view path, _Dest&& destination, unsigned status) {
-        all(path, [destination = std::forward<_Dest>(destination), status](context& ctx) {
-            ctx.redirect(std::move(destination));
-            ctx.status(status);
-        });
-    }
-
-    void compose(std::string&& method, std::string_view path,
-                 std::vector<std::function<void(context&, std::function<void()>)>>&& handlers) {
-        const auto handler = [handlers = std::move(handlers)](context& ctx) {
-            if (handlers.empty()) {
-                return;
-            }
-
-            if (handlers.size() == 1) {
-                handlers[0](ctx, []() {});
-            } else {
-                std::size_t index{0};
-                std::function<void()> next;
-                next = [&handlers, &next, &index, &ctx]() {
-                    if (++index == handlers.size()) {
-                        return;
-                    }
-                    handlers[index](ctx, next);
-                };
-
-                handlers[0](ctx, next);
-            }
+      if (handlers.size() == 1) {
+        handlers[0](ctx, []() {});
+      } else {
+        std::size_t index{0};
+        std::function<void()> next;
+        next = [&handlers, &next, &index, &ctx]() {
+          if (++index == handlers.size()) {
+            return;
+          }
+          handlers[index](ctx, next);
         };
-        handlers_.emplace(method + "+" + prefix_ + std::string{path}, std::move(handler));
-    }
 
-    std::function<void(context&)> make_routes() const noexcept {
-        return [this](context& ctx) {
-            if (ctx.status() != 404) {
-                return;
-            }
-            std::string key{ctx.method()};
-            key.append("+");
-            key.append(prefix_);
-            key.append(std::string{ctx.path()});
-            const auto it = handlers_.find(key);
-            if (it != handlers_.end()) {
-                it->second(ctx);
-            }
-        };
-    }
+        handlers[0](ctx, next);
+      }
+    };
+    handlers_.emplace(method + "+" + prefix_ + std::string{path}, std::move(handler));
+  }
 
-    std::string prefix_;
-    std::unordered_map<std::string, std::function<void(context&)>> handlers_;
+  std::function<void(context&)> make_routes() const noexcept {
+    return [this](context& ctx) {
+      if (ctx.status() != 404) {
+        return;
+      }
+      std::string key{ctx.method()};
+      key.append("+");
+      key.append(prefix_);
+      key.append(std::string{ctx.path()});
+      const auto it = handlers_.find(key);
+      if (it != handlers_.end()) {
+        it->second(ctx);
+      }
+    };
+  }
+
+  std::string prefix_;
+  std::unordered_map<std::string, std::function<void(context&)>> handlers_;
 };
 
-} // namespace http
-} // namespace cue
+}  // namespace http
+}  // namespace cue
 
-#endif // CUEHTTP_ROUTER_HPP_
+#endif  // CUEHTTP_ROUTER_HPP_

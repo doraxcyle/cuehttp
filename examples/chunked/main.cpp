@@ -17,22 +17,22 @@
  * under the License.
  */
 
-#include <cuehttp.hpp>
+#include "cuehttp.hpp"
 
 using namespace cue::http;
 
 int main(int argc, char** argv) {
-    router route;
-    route.get("/chunked", [](context& ctx) {
-        ctx.status(200);
-        ctx.chunked();
-        ctx.body() << R"(<h1>Hello, cuehttp!</h1>)";
-    });
+  router route;
+  route.get("/chunked", [](context& ctx) {
+    ctx.status(200);
+    ctx.chunked();
+    ctx.body() << R"(<h1>Hello, cuehttp!</h1>)";
+  });
 
-    cuehttp app;
-    app.use(route.routes());
+  cuehttp app;
+  app.use(route.routes());
 
-    app.listen(10001).run();
+  app.listen(10001).run();
 
-    return 0;
+  return 0;
 }
