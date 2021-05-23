@@ -131,11 +131,21 @@ class request final : safe_noncopyable {
     parse_size_ = 0;
     buffer_offset_ = 0;
     continue_parse_body_ = false;
+    field_ = {};
+    value_ = {};
+    url_ = {};
     origin_.clear();
     href_.clear();
+    path_ = {};
+    querystring_ = {};
     query_.clear();
+    search_ = {};
+    method_ = {};
     content_length_ = 0;
     websocket_ = false;
+    res_.reset();
+    cookies_.reset();
+    body_ = {};
   }
 
   std::pair<char*, std::size_t> buffer() noexcept {

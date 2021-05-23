@@ -82,8 +82,8 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
         [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
           if (code) {
             if (code == asio::error::eof) {
-              std::error_code code;
-              socket().shutdown(asio::ip::tcp::socket::shutdown_both, code);
+              std::error_code shutdown_code;
+              socket().shutdown(asio::ip::tcp::socket::shutdown_both, shutdown_code);
             }
             return;
           }
