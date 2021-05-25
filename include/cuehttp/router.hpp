@@ -34,7 +34,7 @@ class router final : safe_noncopyable {
  public:
   router() noexcept = default;
 
-  template <typename _Prefix, typename = std::enable_if_t<!std::is_same<std::decay_t<_Prefix>, router>::value>>
+  template <typename _Prefix, typename = std::enable_if_t<!std::is_same_v<std::decay_t<_Prefix>, router>>>
   explicit router(_Prefix&& prefix) noexcept : prefix_{std::forward<_Prefix>(prefix)} {}
 
   std::function<void(context&)> routes() const noexcept { return make_routes(); }
@@ -93,15 +93,14 @@ class router final : safe_noncopyable {
   operator auto() const noexcept { return make_routes(); }
 
  private:
-  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>,
-            typename... _Args>
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>, typename... _Args>
   void register_impl(std::string&& method, std::string_view path, _Func&& func, _Args&&... args) {
     std::vector<std::function<void(context&, std::function<void()>)>> handlers;
     register_multiple(handlers, std::forward<_Func>(func), std::forward<_Args>(args)...);
     compose(std::move(method), path, std::move(handlers));
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>,
             typename... _Args>
   void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
                      _Self self, _Args&&... args) {
@@ -118,7 +117,7 @@ class router final : safe_noncopyable {
     compose(std::move(method), path, std::move(handlers));
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>,
             typename... _Args>
   void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self,
                      _Args&&... args) {
@@ -135,7 +134,7 @@ class router final : safe_noncopyable {
   }
 
   template <typename _Func, typename... _Args>
-  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
+  std::enable_if_t<detail::is_middleware_v<_Func>, std::true_type> register_multiple(
       std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
     handlers.emplace_back(std::forward<_Func>(func));
     register_multiple(handlers, std::forward<_Args>(args)...);
@@ -143,14 +142,14 @@ class router final : safe_noncopyable {
   }
 
   template <typename _Func, typename... _Args>
-  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_multiple(
+  std::enable_if_t<detail::is_middleware_v<_Func>, std::true_type> register_multiple(
       std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
     handlers.emplace_back(std::forward<_Func>(func));
     return std::true_type{};
   }
 
   template <typename _Func, typename... _Args>
-  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
+  std::enable_if_t<detail::is_middleware_without_next_v<_Func>, std::false_type> register_multiple(
       std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func, _Args&&... args) {
     handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
       func(ctx);
@@ -161,7 +160,7 @@ class router final : safe_noncopyable {
   }
 
   template <typename _Func, typename... _Args>
-  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_multiple(
+  std::enable_if_t<detail::is_middleware_without_next_v<_Func>, std::false_type> register_multiple(
       std::vector<std::function<void(context&, std::function<void()>)>>& handlers, _Func&& func) {
     handlers.emplace_back([func = std::forward<_Func>(func)](context& ctx, std::function<void()> next) {
       func(ctx);
@@ -170,7 +169,7 @@ class router final : safe_noncopyable {
     return std::false_type{};
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>,
             typename... _Args>
   void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                          _Func (_Ty::*func)(context&, std::function<void()>), _Self self, _Args&&... args) {
@@ -189,7 +188,7 @@ class router final : safe_noncopyable {
     register_multiple(handlers, std::forward<_Args>(args)...);
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>,
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>,
             typename... _Args>
   void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                          _Func (_Ty::*func)(context&), _Self self, _Args&&... args) {
@@ -212,7 +211,7 @@ class router final : safe_noncopyable {
     register_multiple(handlers, std::forward<_Args>(args)...);
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                          _Func (_Ty::*func)(context&, std::function<void()>), _Self self) {
     handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
@@ -228,7 +227,7 @@ class router final : safe_noncopyable {
     handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx, std::move(next)); });
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void register_multiple(std::vector<std::function<void(context&, std::function<void()>)>>& handlers,
                          _Func (_Ty::*func)(context&), _Self self) {
     handlers.emplace_back([func, self](context& ctx, std::function<void()> next) {
@@ -244,15 +243,14 @@ class router final : safe_noncopyable {
     handlers.emplace_back([func](context& ctx, std::function<void()> next) { (_Ty{}.*func)(ctx); });
   }
 
-  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> register_impl(std::string&& method,
-                                                                                      std::string_view path,
-                                                                                      _Func&& func) {
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>>
+  std::enable_if_t<detail::is_middleware_v<_Func>, std::true_type> register_impl(std::string&& method,
+                                                                                 std::string_view path, _Func&& func) {
     register_with_next(std::move(method), path, std::forward<_Func>(func));
     return std::true_type{};
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&, std::function<void()>),
                      _Self self) {
     register_with_next(std::move(method), path, func, self);
@@ -263,14 +261,15 @@ class router final : safe_noncopyable {
     register_with_next(std::move(method), path, func, (_Ty*)nullptr);
   }
 
-  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> register_impl(
-      std::string&& method, std::string_view path, _Func&& func) {
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>>
+  std::enable_if_t<detail::is_middleware_without_next_v<_Func>, std::false_type> register_impl(std::string&& method,
+                                                                                               std::string_view path,
+                                                                                               _Func&& func) {
     register_without_next(std::move(method), path, std::forward<_Func>(func));
     return std::false_type{};
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void register_impl(std::string&& method, std::string_view path, _Func (_Ty::*func)(context&), _Self self) {
     register_without_next(std::move(method), path, func, self);
   }

@@ -37,8 +37,7 @@ namespace detail {
 template <typename _Socket, typename _Ty>
 class base_connection : public std::enable_shared_from_this<base_connection<_Socket, _Ty>>, safe_noncopyable {
  public:
-  template <typename Socket = _Socket,
-            typename = std::enable_if_t<std::is_same<std::decay_t<Socket>, http_socket>::value>>
+  template <typename Socket = _Socket, typename = std::enable_if_t<std::is_same_v<std::decay_t<Socket>, http_socket>>>
   base_connection(std::function<void(context&)> handler, asio::io_service& io_service) noexcept
       : socket_{io_service},
         context_{std::bind(&base_connection::reply_chunk, this, std::placeholders::_1), false,
@@ -48,8 +47,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
   virtual ~base_connection() = default;
 
 #ifdef ENABLE_HTTPS
-  template <typename Socket = _Socket,
-            typename = std::enable_if_t<!std::is_same<std::decay_t<Socket>, http_socket>::value>>
+  template <typename Socket = _Socket, typename = std::enable_if_t<!std::is_same_v<std::decay_t<Socket>, http_socket>>>
   base_connection(std::function<void(context&)> handler, asio::io_service& io_service,
                   asio::ssl::context& ssl_context) noexcept
       : socket_{io_service, ssl_context},

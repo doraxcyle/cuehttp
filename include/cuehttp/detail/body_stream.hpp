@@ -24,7 +24,6 @@
 #include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 
-
 namespace cue {
 namespace http {
 namespace detail {

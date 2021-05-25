@@ -43,7 +43,7 @@ class middlewares final : safe_noncopyable {
   }
 
  private:
-  template <typename _List, typename = std::enable_if_t<detail::is_middleware_list<_List>::value>>
+  template <typename _List, typename = std::enable_if_t<detail::is_middleware_list_v<_List>>>
   void use_impl(_List&& list) {
     use_append_list(std::forward<_List>(list));
   }
@@ -57,13 +57,13 @@ class middlewares final : safe_noncopyable {
                         std::make_move_iterator(handlers.end()));
   }
 
-  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-  std::enable_if_t<detail::is_middleware<_Func>::value, std::true_type> use_impl(_Func&& func) {
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>>
+  std::enable_if_t<detail::is_middleware_v<_Func>, std::true_type> use_impl(_Func&& func) {
     use_with_next(std::forward<_Func>(func));
     return std::true_type{};
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void use_impl(_Func (_Ty::*func)(context&, std::function<void()>), _Self self) {
     use_with_next(func, self);
   }
@@ -73,13 +73,13 @@ class middlewares final : safe_noncopyable {
     use_with_next(func, (_Ty*)nullptr);
   }
 
-  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer<_Func>::value>>
-  std::enable_if_t<detail::is_middleware_without_next<_Func>::value, std::false_type> use_impl(_Func&& func) {
+  template <typename _Func, typename = std::enable_if_t<!std::is_member_function_pointer_v<_Func>>>
+  std::enable_if_t<detail::is_middleware_without_next_v<_Func>, std::false_type> use_impl(_Func&& func) {
     use_without_next(std::forward<_Func>(func));
     return std::false_type{};
   }
 
-  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same<_Ty*, _Self>::value>>
+  template <typename _Ty, typename _Func, typename _Self, typename = std::enable_if_t<std::is_same_v<_Ty*, _Self>>>
   void use_impl(_Func (_Ty::*func)(context&), _Self self) {
     use_without_next(func, self);
   }
