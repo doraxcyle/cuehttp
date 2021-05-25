@@ -23,7 +23,6 @@
 #include <memory>
 
 #include "cuehttp/cookies.hpp"
-#include "cuehttp/deps/to_chars.hpp"
 #include "cuehttp/detail/body_stream.hpp"
 #include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
@@ -141,10 +140,11 @@ class response final : safe_noncopyable {
 
   std::ostream& body() {
     assert(reply_handler_);
-    is_stream_ = true;
-    reply_handler_(header_to_string());
-    stream_ =
-        std::static_pointer_cast<std::ostream>(std::make_shared<detail::body_ostream>(is_chunked_, reply_handler_));
+    if (!stream_) {
+      is_stream_ = true;
+      reply_handler_(header_to_string());
+      stream_ = std::make_shared<detail::body_ostream>(is_chunked_, reply_handler_);
+    }
     return *stream_;
   }
 
@@ -192,9 +192,7 @@ class response final : safe_noncopyable {
     if (!is_chunked_) {
       if (content_length_ != 0) {
         str.append("Content-Length: ");
-        char length[16]{};
-        to_chars_jeaiii(length, 16, content_length_);
-        str.append(length);
+        str.append(std::to_string(content_length_));
         str.append("\r\n\r\n");
         str.append(body_);
       } else {
