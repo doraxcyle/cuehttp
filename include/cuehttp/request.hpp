@@ -56,8 +56,8 @@ class request final : safe_noncopyable {
     std::vector<std::pair<std::string_view, std::string_view>> headers;
     for (std::size_t i{0}; i < phr_num_headers_; ++i) {
       const auto& header = phr_headers_[i];
-      headers.emplace_back(std::make_pair(std::string_view{header.name, header.name_len},
-                                          std::string_view{header.value, header.value_len}));
+      headers.emplace_back(std::string_view{header.name, header.name_len},
+                           std::string_view{header.value, header.value_len});
     }
     return headers;
   }
@@ -75,14 +75,16 @@ class request final : safe_noncopyable {
 
   std::string_view origin() const noexcept {
     if (origin_.empty()) {
-      origin_ = https_ ? "https://" : "http://" + std::string{host()};
+      origin_ = https_ ? "https://" : "http://";
+      origin_ += host();
     }
     return origin_;
   }
 
   std::string_view href() const noexcept {
     if (href_.empty()) {
-      href_ = std::string{origin()} + std::string{url_};
+      href_ += origin();
+      href_ += url_;
     }
     return href_;
   }
@@ -101,7 +103,7 @@ class request final : safe_noncopyable {
   std::string_view search() const noexcept { return search_; }
 
   std::string_view type() const noexcept {
-    std::string_view content_type{get("Content-Type")};
+    const auto content_type = get("Content-Type");
     const auto pos = content_type.find("charset");
     if (pos != std::string_view::npos) {
       return content_type.substr(0, content_type.find(";"));
@@ -111,7 +113,7 @@ class request final : safe_noncopyable {
   }
 
   std::string_view charset() const noexcept {
-    std::string_view content_type{get("Content-Type")};
+    const auto content_type = get("Content-Type");
     const auto pos = content_type.find("charset");
     if (pos != std::string_view::npos) {
       return content_type.substr(pos + 8);
@@ -149,7 +151,7 @@ class request final : safe_noncopyable {
   }
 
   std::pair<char*, std::size_t> buffer() noexcept {
-    return std::make_pair(buffer_.data() + buffer_offset_, buffer_.size() - buffer_offset_);
+    return {buffer_.data() + buffer_offset_, buffer_.size() - buffer_offset_};
   }
 
   int parse(std::size_t size) noexcept {

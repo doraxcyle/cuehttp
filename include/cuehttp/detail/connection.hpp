@@ -146,6 +146,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     asio::async_write(
         socket_, asio::buffer(reply_str_),
         [this, finished, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+          detail::unused(bytes_transferred);
           if (code) {
             return;
           }
@@ -174,6 +175,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     asio::async_read(
         socket_, asio::buffer(ws_helper_->ws_reader_.header),
         [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+          detail::unused(bytes_transferred);
           if (code) {
             close();
           } else {
@@ -203,6 +205,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
       asio::async_read(
           socket_, asio::buffer(reader.length_mask_buffer.data(), length),
           [bytes, this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+            detail::unused(bytes_transferred);
             if (code) {
               close();
             } else {
@@ -235,6 +238,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     asio::async_read(
         socket_, asio::buffer(reader.payload_buffer.data() + length, reader.length),
         [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+          detail::unused(bytes_transferred);
           if (code) {
             close();
           } else {
@@ -335,6 +339,7 @@ class base_connection : public std::enable_shared_from_this<base_connection<_Soc
     asio::async_write(
         socket_, ws_helper_->buffer_,
         [this, self = this->shared_from_this()](const std::error_code& code, std::size_t bytes_transferred) {
+          detail::unused(bytes_transferred);
           if (code) {
             close();
           } else {

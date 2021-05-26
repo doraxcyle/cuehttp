@@ -23,6 +23,7 @@
 #include <array>
 #include <streambuf>
 
+#include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
@@ -104,9 +105,17 @@ class buffered_streambuf : public std::streambuf, safe_noncopyable {
     }
   }
 
-  virtual int read_from(char* buffer, std::streamsize size) { return 0; }
+  virtual int read_from(char* buffer, std::streamsize size) {
+    detail::unused(buffer);
+    detail::unused(size);
+    return 0;
+  }
 
-  virtual int write_to(const char* buffer, std::streamsize size) { return 0; }
+  virtual int write_to(const char* buffer, std::streamsize size) {
+    detail::unused(buffer);
+    detail::unused(size);
+    return 0;
+  }
 
   int flush() {
     const auto n = pptr() - pbase();

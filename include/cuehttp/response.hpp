@@ -23,12 +23,15 @@
 #include <memory>
 
 #include "cuehttp/cookies.hpp"
+#include "cuehttp/deps/fmt/fmt.h"
 #include "cuehttp/detail/body_stream.hpp"
 #include "cuehttp/detail/common.hpp"
 #include "cuehttp/detail/noncopyable.hpp"
 
 namespace cue {
 namespace http {
+
+using namespace std::literals;
 
 class response final : safe_noncopyable {
  public:
@@ -163,38 +166,30 @@ class response final : safe_noncopyable {
   bool is_stream() const noexcept { return is_stream_; }
 
   void to_string(std::string& str) {
-    const auto line = detail::utils::get_response_line(minor_version_ * 1000 + status_);
-    str.append(line.data(), line.length());
+    str += detail::utils::get_response_line(minor_version_ * 1000 + status_);
     // headers
     const auto now = std::chrono::steady_clock::now();
     if (now - last_time_ > std::chrono::seconds{1}) {
       last_gmt_date_str_ = detail::utils::to_gmt_date_string(std::time(nullptr));
       last_time_ = now;
     }
-    str.append(last_gmt_date_str_);
+    str += last_gmt_date_str_;
     for (const auto& header : headers_) {
-      str.append(header.first);
-      str.append(": ");
-      str.append(header.second);
-      str.append("\r\n");
+      str += fmt::format("{}: {}\r\n", header.first, header.second);
     }
 
     // cookies
     const auto& cookies = cookies_.get();
     for (const auto& cookie : cookies) {
       if (cookie.valid()) {
-        str.append("Set-Cookie: ");
-        str.append(cookie.to_string());
-        str.append("\r\n");
+        str += fmt::format("Set-Cookie: {}\r\n", cookie.to_string());
       }
     }
 
     if (!is_chunked_) {
       if (content_length_ != 0) {
-        str.append("Content-Length: ");
-        str.append(std::to_string(content_length_));
-        str.append("\r\n\r\n");
-        str.append(body_);
+        str += fmt::format("Content-Length: {}\r\n\r\n", content_length_);
+        str += body_;
       } else {
         str.append("Content-Length: 0\r\n\r\n");
       }
@@ -206,33 +201,32 @@ class response final : safe_noncopyable {
 
  private:
   std::string header_to_string() {
-    std::ostringstream os;
-    os << detail::utils::get_response_line(minor_version_ * 1000 + status_);
+    std::string str{detail::utils::get_response_line(minor_version_ * 1000 + status_)};
     // headers
     // os << detail::utils::to_gmt_date_string(std::time(nullptr));
     for (const auto& header : headers_) {
-      os << header.first << ": " << header.second << "\r\n";
+      str += fmt::format("{}: {}\r\n", header.first, header.second);
     }
 
     if (get("connection").empty() && keepalive_) {
-      os << "Connection: keep-alive\r\n";
+      str += "Connection: keep-alive\r\n"sv;
     }
 
     // cookies
     const auto& cookies = cookies_.get();
     for (const auto& cookie : cookies) {
       if (cookie.valid()) {
-        os << "Set-Cookie: " << cookie.to_string() << "\r\n";
+        str += fmt::format("Set-Cookie: {}\r\n", cookie.to_string());
       }
     }
 
     if (is_chunked_) {
-      os << "\r\n";
+      str += "\r\n"sv;
     } else {
-      os << "Content-Length: " << content_length_ << "\r\n\r\n";
+      str += fmt::format("Content-Length: {}\r\n\r\n", content_length_);
     }
 
-    return os.str();
+    return str;
   }
 
   std::vector<std::pair<std::string, std::string>> headers_;

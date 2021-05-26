@@ -45,7 +45,11 @@ class body_streambuf final : public buffered_streambuf<>, safe_noncopyable {
     }
   }
 
-  int read_from(char* buffer, std::streamsize size) final { return 0; }
+  int read_from(char* buffer, std::streamsize size) final {
+    detail::unused(buffer);
+    detail::unused(size);
+    return 0;
+  }
 
   int write_to(const char* buffer, std::streamsize size) final {
     buffer_.clear();
