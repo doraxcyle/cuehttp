@@ -21,6 +21,10 @@
 #define CUEHTTP_COMMON_HPP_
 
 #include <algorithm>
+#include <boost/algorithm/string.hpp>
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -34,7 +38,6 @@
 #include <vector>
 
 #include "cuehttp/deps/asio/asio.hpp"
-#include "cuehttp/deps/cppcodec/base64_rfc4648.hpp"
 
 #ifdef ENABLE_HTTPS
 #include "cuehttp/deps/asio/asio/ssl.hpp"
@@ -436,13 +439,38 @@ struct utils final : safe_noncopyable {
   }
 
   static std::string base64_encode(std::string_view source) {
-    using base64 = cppcodec::base64_rfc4648;
-    return base64::encode(source);
+    using base64_encode_iterator = boost::archive::iterators::base64_from_binary<
+        boost::archive::iterators::transform_width<std::string_view::const_iterator, 6, 8>>;
+    std::stringstream result;
+    std::copy(base64_encode_iterator{source.begin()}, base64_encode_iterator{source.end()},
+              std::ostream_iterator<char>{result});
+    std::size_t equal_count{(3 - source.length() % 3) % 3};
+    for (std::size_t i{0}; i < equal_count; ++i) {
+      result.put('=');
+    }
+    return result.str();
   }
 
   static std::string base64_decode(std::string_view source) noexcept {
-    using base64 = cppcodec::base64_rfc4648;
-    return base64::decode<std::string>(source);
+    using base64_decode_iterator = boost::archive::iterators::transform_width<
+        boost::archive::iterators::binary_from_base64<std::string::const_iterator>, 8, 6>;
+    std::string result;
+    try {
+      std::string temp{source};
+      std::size_t end_index{temp.size() - 1};
+      while (temp[end_index] == '=') {
+        temp.erase(end_index);
+        end_index = temp.size() - 1;
+      }
+
+      std::stringstream stream_result;
+      std::copy(base64_decode_iterator{temp.cbegin()}, base64_decode_iterator{temp.cend()},
+                std::ostream_iterator<char>{stream_result});
+      result = stream_result.str();
+    } catch (...) {
+      return result;
+    }
+    return result;
   }
 
   static std::string uuid() {
@@ -456,7 +484,8 @@ struct utils final : safe_noncopyable {
   }
 };
 
-// utilities classes
+template <typename... _Args>
+constexpr void unused(_Args&&...) {}
 
 }  // namespace detail
 }  // namespace http
